@@ -1,0 +1,13 @@
+# Gradle files
+.gradle/
+build/
+**/build/
+
+# Android Studio
+.idea/
+local.properties
+.DS_Store
+
+# Generated files
+app/release/
+app/debug/
