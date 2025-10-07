@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.kibo">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -9,15 +12,39 @@
         android:theme="@style/Theme.Kibo">
 
         <activity
-            android:name=".MainActivity"
-            android:exported="true">
+            android:name=".SplashActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Kibo">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-
+        
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Kibo" />
+            
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Kibo" />
+            
+        <activity
+            android:name=".OtpVerificationActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Kibo" />
+            
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Kibo" />
     </application>
 
 </manifest>
