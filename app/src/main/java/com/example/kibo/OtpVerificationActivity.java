@@ -41,7 +41,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
     private CountDownTimer countDownTimer;
     private Animation cursorBlinkAnimation;
     private String userEmail;
-    private String userOtp = ""; // This would normally come from your backend
     
     private ApiService apiService;
     private SharedPreferences sharedPreferences;
@@ -51,40 +50,25 @@ public class OtpVerificationActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_otp_verification);
 
-        // Get email from intent
         userEmail = getIntent().getStringExtra("email");
         if (userEmail == null) {
             userEmail = "example@email.com";
         }
 
-        // Initialize API service and SharedPreferences
         apiService = ApiClient.getApiService();
         sharedPreferences = getSharedPreferences("KiboPrefs", MODE_PRIVATE);
 
-        // Initialize views
         initViews();
-        
-        // Setup animations
         setupAnimations();
-        
-        // Setup OTP input handling
         setupOtpInputHandling();
-        
-        // Setup click listeners
         setupClickListeners();
-        
-        // Setup back button handling
         setupBackButton();
-        
-        // Start timer
         startCountDownTimer();
         
-        // Auto focus on hidden input and show initial cursor
         editTextHiddenOtp.post(new Runnable() {
             @Override
             public void run() {
                 editTextHiddenOtp.requestFocus();
-                // Show cursor at position 0 (first digit)
                 showCursorAtPosition(0);
             }
         });
@@ -107,19 +91,14 @@ public class OtpVerificationActivity extends AppCompatActivity {
         cursorOtp6 = findViewById(R.id.cursor_otp_6);
         
         otpContainer = findViewById(R.id.otp_container);
-        
         buttonVerify = findViewById(R.id.button_verify);
         textViewTimer = findViewById(R.id.text_view_timer);
         textViewResend = findViewById(R.id.text_view_resend);
         textViewEmailDisplay = findViewById(R.id.text_view_email_display);
         
-        // Set email display
         textViewEmailDisplay.setText(userEmail);
-        
-        // Load cursor animation
         cursorBlinkAnimation = AnimationUtils.loadAnimation(this, R.anim.cursor_blink);
         
-        // Ensure animation is properly configured
         if (cursorBlinkAnimation != null) {
             cursorBlinkAnimation.setRepeatCount(Animation.INFINITE);
             cursorBlinkAnimation.setRepeatMode(Animation.REVERSE);
@@ -127,11 +106,9 @@ public class OtpVerificationActivity extends AppCompatActivity {
     }
 
     private void setupAnimations() {
-        // Load animations
         Animation fadeInAnimation = AnimationUtils.loadAnimation(this, R.anim.fade_in);
         Animation slideUpAnimation = AnimationUtils.loadAnimation(this, R.anim.slide_up);
 
-        // Apply animations with delays
         findViewById(R.id.text_view_otp_title).startAnimation(fadeInAnimation);
         
         textViewOtp1.startAnimation(slideUpAnimation);
@@ -145,7 +122,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
     }
 
     private void setupOtpInputHandling() {
-        // Setup click listener for OTP container to focus hidden input
         otpContainer.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -153,7 +129,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
             }
         });
 
-        // Add text watcher to hidden OTP input
         editTextHiddenOtp.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -187,7 +162,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
         findViewById(R.id.text_view_back_register).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Navigate back to register activity
                 Intent intent = new Intent(OtpVerificationActivity.this, RegisterActivity.class);
                 startActivity(intent);
                 finish();
@@ -200,7 +174,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                // Navigate back to register activity
                 Intent intent = new Intent(OtpVerificationActivity.this, RegisterActivity.class);
                 startActivity(intent);
                 finish();
@@ -211,7 +184,7 @@ public class OtpVerificationActivity extends AppCompatActivity {
     }
 
     private void startCountDownTimer() {
-        countDownTimer = new CountDownTimer(120000, 1000) { // 2 minutes
+        countDownTimer = new CountDownTimer(120000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 long seconds = millisUntilFinished / 1000;
@@ -238,40 +211,24 @@ public class OtpVerificationActivity extends AppCompatActivity {
             return;
         }
 
-        // Show loading state
         buttonVerify.setText("Đang xác thực...");
         buttonVerify.setEnabled(false);
 
-        // Create OTP request
         OtpRequest otpRequest = new OtpRequest(userEmail, enteredOtp);
 
-        // Call API
         Call<LoginResponse> call = apiService.verifyOtp(otpRequest);
         call.enqueue(new Callback<LoginResponse>() {
             @Override
             public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
-                // Reset button state
                 buttonVerify.setText("Xác thực");
                 buttonVerify.setEnabled(false);
-
-                System.out.println("DEBUG: onResponse called");
-                System.out.println("DEBUG: response.isSuccessful() = " + response.isSuccessful());
-                System.out.println("DEBUG: response.body() != null = " + (response.body() != null));
 
                 if (response.isSuccessful() && response.body() != null) {
                     LoginResponse loginResponse = response.body();
                     
-                    System.out.println("DEBUG: loginResponse.isSuccess() = " + loginResponse.isSuccess());
-                    System.out.println("DEBUG: loginResponse.getUser() != null = " + (loginResponse.getUser() != null));
-                    
                     if (loginResponse.isSuccess() && loginResponse.getUser() != null) {
-                        System.out.println("DEBUG: Entering success block");
-                        System.out.println("DEBUG: AccessToken = " + loginResponse.getAccessToken());
-                        System.out.println("DEBUG: RefreshToken = " + loginResponse.getRefreshToken());
-                        System.out.println("DEBUG: User email = " + loginResponse.getUser().getEmail());
                         User user = loginResponse.getUser();
                         
-                        // Save user data to SharedPreferences
                         SharedPreferences.Editor editor = sharedPreferences.edit();
                         if (loginResponse.getAccessToken() != null) {
                             editor.putString("user_token", loginResponse.getAccessToken());
@@ -288,48 +245,24 @@ public class OtpVerificationActivity extends AppCompatActivity {
                         editor.putBoolean("is_logged_in", true);
                         editor.apply();
 
-                        // Show success message
-                        Toast.makeText(OtpVerificationActivity.this, "Xác thực thành công!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(OtpVerificationActivity.this, "Xác thực thành công!", Toast.LENGTH_LONG).show();
 
-                        // Debug log
-                        System.out.println("DEBUG: OTP verification successful, navigating to MainActivity");
-                        
-                        // Navigate to main activity with delay
                         new android.os.Handler().postDelayed(new Runnable() {
                             @Override
                             public void run() {
-                                try {
-                                    System.out.println("DEBUG: About to create Intent for MainActivity");
-                                    Intent intent = new Intent(OtpVerificationActivity.this, MainActivity.class);
-                                    System.out.println("DEBUG: Intent created successfully");
-                                    
-                                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                    System.out.println("DEBUG: Intent flags set");
-                                    
-                                    startActivity(intent);
-                                    System.out.println("DEBUG: startActivity called");
-                                    
-                                    finish();
-                                    System.out.println("DEBUG: finish() called - Navigation to MainActivity completed");
-                                } catch (Exception e) {
-                                    System.out.println("DEBUG: Error navigating to MainActivity: " + e.getMessage());
-                                    e.printStackTrace();
-                                    // Fallback to LoginActivity if MainActivity fails
-                                    Intent fallbackIntent = new Intent(OtpVerificationActivity.this, LoginActivity.class);
-                                    startActivity(fallbackIntent);
-                                    finish();
-                                }
+                                Intent intent = new Intent(OtpVerificationActivity.this, MainActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                startActivity(intent);
+                                finish();
                             }
-                        }, 1500); // 1.5 second delay
+                        }, 1500);
                     } else {
-                        // Handle API error response
                         String errorMessage = loginResponse.getMessage() != null ? 
                             loginResponse.getMessage() : "Mã OTP không hợp lệ";
                         Toast.makeText(OtpVerificationActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                         buttonVerify.setEnabled(true);
                     }
                 } else {
-                    // HTTP error (400, 401, 500, etc.)
                     String errorMessage = "Xác thực thất bại";
                     
                     if (response.code() == 400) {
@@ -347,11 +280,9 @@ public class OtpVerificationActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<LoginResponse> call, Throwable t) {
-                // Reset button state
                 buttonVerify.setText("Xác thực");
                 buttonVerify.setEnabled(true);
 
-                // Handle network error
                 String errorMessage = "Lỗi kết nối mạng";
                 if (t.getMessage() != null && t.getMessage().contains("timeout")) {
                     errorMessage = "Kết nối quá chậm, vui lòng thử lại";
@@ -365,7 +296,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
     }
 
     private void updateOtpDisplay(String otp) {
-        // Clear all text views first
         textViewOtp1.setText("");
         textViewOtp2.setText("");
         textViewOtp3.setText("");
@@ -373,10 +303,8 @@ public class OtpVerificationActivity extends AppCompatActivity {
         textViewOtp5.setText("");
         textViewOtp6.setText("");
 
-        // Hide all cursors first
         hideAllCursors();
 
-        // Update text views based on input length
         if (otp.length() >= 1) textViewOtp1.setText(String.valueOf(otp.charAt(0)));
         if (otp.length() >= 2) textViewOtp2.setText(String.valueOf(otp.charAt(1)));
         if (otp.length() >= 3) textViewOtp3.setText(String.valueOf(otp.charAt(2)));
@@ -384,8 +312,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
         if (otp.length() >= 5) textViewOtp5.setText(String.valueOf(otp.charAt(4)));
         if (otp.length() >= 6) textViewOtp6.setText(String.valueOf(otp.charAt(5)));
 
-        // Show cursor at current position (next empty position)
-        // If OTP is empty, show cursor at position 0
         int cursorPosition = otp.isEmpty() ? 0 : otp.length();
         showCursorAtPosition(cursorPosition);
     }
@@ -398,7 +324,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
         cursorOtp5.setVisibility(View.GONE);
         cursorOtp6.setVisibility(View.GONE);
         
-        // Stop all cursor animations
         cursorOtp1.clearAnimation();
         cursorOtp2.clearAnimation();
         cursorOtp3.clearAnimation();
@@ -408,7 +333,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
     }
 
     private void showCursorAtPosition(int position) {
-        // Don't show cursor if position is 6 (all digits filled)
         if (position >= 6) {
             return;
         }
@@ -416,53 +340,34 @@ public class OtpVerificationActivity extends AppCompatActivity {
         ImageView cursor = null;
         
         switch (position) {
-            case 0:
-                cursor = cursorOtp1;
-                break;
-            case 1:
-                cursor = cursorOtp2;
-                break;
-            case 2:
-                cursor = cursorOtp3;
-                break;
-            case 3:
-                cursor = cursorOtp4;
-                break;
-            case 4:
-                cursor = cursorOtp5;
-                break;
-            case 5:
-                cursor = cursorOtp6;
-                break;
+            case 0: cursor = cursorOtp1; break;
+            case 1: cursor = cursorOtp2; break;
+            case 2: cursor = cursorOtp3; break;
+            case 3: cursor = cursorOtp4; break;
+            case 4: cursor = cursorOtp5; break;
+            case 5: cursor = cursorOtp6; break;
         }
         
         if (cursor != null) {
             cursor.setVisibility(View.VISIBLE);
-            // Clear any existing animation first
             cursor.clearAnimation();
-            // Start the blinking animation
             cursor.startAnimation(cursorBlinkAnimation);
         }
     }
 
     private void resendOtp() {
-        // Reset timer
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
         
-        // Clear OTP input
         editTextHiddenOtp.setText("");
-        updateOtpDisplay(""); // This will also hide all cursors and show cursor at position 0
+        updateOtpDisplay("");
         
-        // Focus on hidden input
         editTextHiddenOtp.requestFocus();
         
-        // Hide resend button and show timer
         textViewResend.setVisibility(View.GONE);
         textViewTimer.setVisibility(View.VISIBLE);
         
-        // Call API to resend OTP
         Call<ApiResponse<String>> call = apiService.resendOtp(userEmail);
         call.enqueue(new Callback<ApiResponse<String>>() {
             @Override
@@ -471,23 +376,17 @@ public class OtpVerificationActivity extends AppCompatActivity {
                     ApiResponse<String> apiResponse = response.body();
                     
                     if (apiResponse.isSuccess()) {
-                        // Start new timer
                         startCountDownTimer();
-                        
-                        // Show success message
                         Toast.makeText(OtpVerificationActivity.this, "Mã OTP mới đã được gửi", Toast.LENGTH_SHORT).show();
                     } else {
-                        // Handle API error response
                         String errorMessage = apiResponse.getMessage() != null ? 
                             apiResponse.getMessage() : "Không thể gửi lại mã OTP";
                         Toast.makeText(OtpVerificationActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                         
-                        // Show resend button again
                         textViewResend.setVisibility(View.VISIBLE);
                         textViewTimer.setVisibility(View.GONE);
                     }
                 } else {
-                    // HTTP error (400, 401, 500, etc.)
                     String errorMessage = "Không thể gửi lại mã OTP";
                     
                     if (response.code() == 400) {
@@ -500,7 +399,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
                     
                     Toast.makeText(OtpVerificationActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                     
-                    // Show resend button again
                     textViewResend.setVisibility(View.VISIBLE);
                     textViewTimer.setVisibility(View.GONE);
                 }
@@ -508,7 +406,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                // Handle network error
                 String errorMessage = "Lỗi kết nối mạng";
                 if (t.getMessage() != null && t.getMessage().contains("timeout")) {
                     errorMessage = "Kết nối quá chậm, vui lòng thử lại";
@@ -518,7 +415,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
                 
                 Toast.makeText(OtpVerificationActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                 
-                // Show resend button again
                 textViewResend.setVisibility(View.VISIBLE);
                 textViewTimer.setVisibility(View.GONE);
             }
@@ -534,7 +430,6 @@ public class OtpVerificationActivity extends AppCompatActivity {
             buttonVerify.setEnabled(false);
         }
     }
-
 
     @Override
     protected void onDestroy() {
