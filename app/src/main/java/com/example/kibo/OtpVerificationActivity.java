@@ -230,19 +230,36 @@ public class OtpVerificationActivity extends AppCompatActivity {
                         User user = loginResponse.getUser();
                         
                         SharedPreferences.Editor editor = sharedPreferences.edit();
+                        
+                        // Save tokens and expiration
                         if (loginResponse.getAccessToken() != null) {
                             editor.putString("user_token", loginResponse.getAccessToken());
                         }
                         if (loginResponse.getRefreshToken() != null) {
                             editor.putString("refresh_token", loginResponse.getRefreshToken());
                         }
+                        if (loginResponse.getExpiresAt() != null) {
+                            editor.putString("token_expires_at", loginResponse.getExpiresAt());
+                        }
+                        
+                        // Save user basic info
                         editor.putString("user_email", user.getEmail());
                         editor.putString("user_name", user.getUsername());
                         editor.putInt("user_id", user.getUserid());
-                        editor.putString("user_phone", user.getPhonenumber());
+                        editor.putString("user_phone", user.getPhonenumber() != null ? user.getPhonenumber() : "");
                         editor.putInt("user_role", user.getRole());
-                        editor.putString("user_role_name", user.getRoleName());
+                        editor.putString("user_role_name", user.getRoleName() != null ? user.getRoleName() : "");
+                        
+                        // Save user address info
+                        editor.putString("user_address", user.getAddress() != null ? user.getAddress() : "");
+                        editor.putInt("user_province_id", user.getProvinceid());
+                        editor.putInt("user_district_id", user.getDistrictid());
+                        editor.putInt("user_ward_id", user.getWardid());
+                        
+                        // Save login flags
+                        editor.putBoolean("is_first_login", loginResponse.isFirstLogin());
                         editor.putBoolean("is_logged_in", true);
+                        
                         editor.apply();
 
                         Toast.makeText(OtpVerificationActivity.this, "Xác thực thành công!", Toast.LENGTH_LONG).show();

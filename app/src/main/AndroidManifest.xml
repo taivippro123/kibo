@@ -62,6 +62,18 @@
             android:name=".ProductDetailActivity"
             android:exported="false"
             android:theme="@style/Theme.Kibo" />
+            
+        <activity
+            android:name=".PersonalInfoActivity"
+            android:exported="false"
+            android:label="Thông tin cá nhân"
+            android:theme="@style/Theme.Kibo" />
+            
+        <activity
+            android:name=".EditPersonalInfoActivity"
+            android:exported="false"
+            android:label="Chỉnh sửa thông tin"
+            android:theme="@style/Theme.Kibo" />
     </application>
 
 </manifest>

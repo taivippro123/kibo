@@ -338,15 +338,30 @@ public class LoginActivity extends AppCompatActivity {
 
     private void clearStoredUserData() {
         SharedPreferences.Editor editor = sharedPreferences.edit();
+        
+        // Clear tokens
         editor.remove("user_token");
         editor.remove("refresh_token");
+        editor.remove("token_expires_at");
+        
+        // Clear user basic info
         editor.remove("user_email");
         editor.remove("user_name");
         editor.remove("user_id");
         editor.remove("user_phone");
         editor.remove("user_role");
         editor.remove("user_role_name");
+        
+        // Clear user address info
+        editor.remove("user_address");
+        editor.remove("user_province_id");
+        editor.remove("user_district_id");
+        editor.remove("user_ward_id");
+        
+        // Clear login flags
+        editor.remove("is_first_login");
         editor.remove("is_logged_in");
+        
         editor.apply();
     }
 
@@ -441,15 +456,32 @@ public class LoginActivity extends AppCompatActivity {
                         if (user != null) {
                             // Save user data to SharedPreferences
                             SharedPreferences.Editor editor = sharedPreferences.edit();
+                            
+                            // Save tokens and expiration
                             editor.putString("user_token", loginResponse.getAccessToken());
                             editor.putString("refresh_token", loginResponse.getRefreshToken());
+                            if (loginResponse.getExpiresAt() != null) {
+                                editor.putString("token_expires_at", loginResponse.getExpiresAt());
+                            }
+                            
+                            // Save user basic info
                             editor.putString("user_email", user.getEmail());
                             editor.putString("user_name", user.getUsername());
                             editor.putInt("user_id", user.getUserid());
-                            editor.putString("user_phone", user.getPhonenumber());
+                            editor.putString("user_phone", user.getPhonenumber() != null ? user.getPhonenumber() : "");
                             editor.putInt("user_role", user.getRole());
-                            editor.putString("user_role_name", user.getRoleName());
+                            editor.putString("user_role_name", user.getRoleName() != null ? user.getRoleName() : "");
+                            
+                            // Save user address info
+                            editor.putString("user_address", user.getAddress() != null ? user.getAddress() : "");
+                            editor.putInt("user_province_id", user.getProvinceid());
+                            editor.putInt("user_district_id", user.getDistrictid());
+                            editor.putInt("user_ward_id", user.getWardid());
+                            
+                            // Save login flags
+                            editor.putBoolean("is_first_login", loginResponse.isFirstLogin());
                             editor.putBoolean("is_logged_in", true);
+                            
                             editor.apply();
 
                             // Show success message
