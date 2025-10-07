@@ -40,11 +40,11 @@ public class SplashActivity extends AppCompatActivity {
         appNameTextView.startAnimation(slideUpAnimation);
         taglineTextView.startAnimation(slideDownAnimation);
 
-        // Navigate to MainActivity after splash duration
+        // Navigate to LoginActivity after splash duration
         new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {
-                Intent intent = new Intent(SplashActivity.this, MainActivity.class);
+                Intent intent = new Intent(SplashActivity.this, LoginActivity.class);
                 startActivity(intent);
                 finish();
                 
