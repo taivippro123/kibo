@@ -12,6 +12,13 @@ import com.example.kibo.models.District;
 import com.example.kibo.models.Ward;
 import com.example.kibo.models.UpdateUserRequest;
 import com.example.kibo.models.FullAddressResponse;
+import com.example.kibo.models.Cart;
+import com.example.kibo.models.CartRequest;
+import com.example.kibo.models.CartItemRequest;
+import com.example.kibo.models.CartItem;
+import com.example.kibo.models.CartItemsResponse;
+import com.example.kibo.models.UpdateQuantityRequest;
+import com.example.kibo.models.RemoveCartItemRequest;
 
 import java.util.List;
 
@@ -22,6 +29,7 @@ import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import retrofit2.http.HTTP;
 
 public interface ApiService {
     
@@ -76,4 +84,20 @@ public interface ApiService {
     // Update user
     @PUT("Users/{id}")
     Call<User> updateUser(@Path("id") int userId, @Body UpdateUserRequest updateUserRequest);
+    
+    // Cart endpoints
+    @POST("Carts")
+    Call<Cart> createCart(@Body CartRequest cartRequest);
+    
+    @POST("CartItems/add")
+    Call<ApiResponse<String>> addToCart(@Body CartItemRequest cartItemRequest);
+    
+    @GET("CartItems")
+    Call<CartItemsResponse> getCartItems(@Query("Cartid") int cartId);
+    
+    @PUT("CartItems/update-quantity")
+    Call<ApiResponse<String>> updateCartItemQuantity(@Body UpdateQuantityRequest request);
+    
+    @HTTP(method = "DELETE", path = "CartItems/remove", hasBody = true)
+    Call<ApiResponse<String>> removeCartItem(@Body RemoveCartItemRequest request);
 }

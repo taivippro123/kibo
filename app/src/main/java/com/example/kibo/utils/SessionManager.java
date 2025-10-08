@@ -35,6 +35,9 @@ public class SessionManager {
     private static final String KEY_IS_FIRST_LOGIN = "is_first_login";
     private static final String KEY_IS_LOGGED_IN = "is_logged_in";
     
+    // Cart info
+    private static final String KEY_ACTIVE_CART_ID = "active_cart_id";
+    
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
     private Context context;
@@ -219,6 +222,38 @@ public class SessionManager {
      */
     public boolean isAdmin() {
         return getUserRole() == 2;
+    }
+    
+    // ============ Cart Methods ============
+    
+    /**
+     * Get active cart ID
+     */
+    public int getActiveCartId() {
+        return sharedPreferences.getInt(KEY_ACTIVE_CART_ID, -1);
+    }
+    
+    /**
+     * Set active cart ID
+     */
+    public void setActiveCartId(int cartId) {
+        editor.putInt(KEY_ACTIVE_CART_ID, cartId);
+        editor.apply();
+    }
+    
+    /**
+     * Clear active cart ID (when order is completed)
+     */
+    public void clearActiveCartId() {
+        editor.remove(KEY_ACTIVE_CART_ID);
+        editor.apply();
+    }
+    
+    /**
+     * Check if user has an active cart
+     */
+    public boolean hasActiveCart() {
+        return getActiveCartId() != -1;
     }
 }
 
