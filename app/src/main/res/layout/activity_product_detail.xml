@@ -357,17 +357,37 @@
         android:padding="12dp"
         android:elevation="8dp">
 
-        <!-- Add to cart button (white with red icon) -->
-        <ImageButton
-            android:id="@+id/btn_add_to_cart"
+        <!-- Chat button (white with blue icon) -->
+        <LinearLayout
+            android:id="@+id/btn_chat"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
+            android:orientation="horizontal"
+            android:gravity="center"
             android:background="@drawable/button_white_outline"
-            android:src="@drawable/ic_add_to_cart"
-            android:scaleType="center"
-            android:contentDescription="Thêm vào giỏ hàng"/>
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="12dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chat"
+                android:layout_marginEnd="8dp"
+                android:tint="@color/primary_color"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CHAT"
+                android:textColor="@color/primary_color"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"/>
+
+        </LinearLayout>
 
         <!-- Buy button (red with white text) -->
         <Button
@@ -375,7 +395,7 @@
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:layout_weight="2"
-            android:text="MUA NGAY"
+            android:text="THÊM VÀO GIỎ HÀNG"
             android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold"

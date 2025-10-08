@@ -74,6 +74,12 @@
             android:exported="false"
             android:label="Chỉnh sửa thông tin"
             android:theme="@style/Theme.Kibo" />
+            
+        <activity
+            android:name=".ConfirmOrderActivity"
+            android:exported="false"
+            android:label="Xác nhận đơn hàng"
+            android:theme="@style/Theme.Kibo" />
     </application>
 
 </manifest>
