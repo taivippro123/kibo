@@ -50,6 +50,21 @@ public class Product {
     
     @SerializedName("screen")
     private String screen;
+    
+    @SerializedName("width")
+    private int width;
+    
+    @SerializedName("length")
+    private int length;
+    
+    @SerializedName("height")
+    private int height;
+    
+    @SerializedName("weight")
+    private int weight;
+    
+    @SerializedName("quantity")
+    private int quantity;
 
     // Getters
     public int getProductId() {
@@ -185,12 +200,50 @@ public class Product {
     public void setScreen(String screen) {
         this.screen = screen;
     }
+    
+    public int getWidth() {
+        return width;
+    }
+    
+    public void setWidth(int width) {
+        this.width = width;
+    }
+    
+    public int getLength() {
+        return length;
+    }
+    
+    public void setLength(int length) {
+        this.length = length;
+    }
+    
+    public int getHeight() {
+        return height;
+    }
+    
+    public void setHeight(int height) {
+        this.height = height;
+    }
+    
+    public int getWeight() {
+        return weight;
+    }
+    
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
+    
+    public int getQuantity() {
+        return quantity;
+    }
+    
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
 
     // Helper methods cho admin
     public String getStockText() {
-        // Vì Product model không có stock field từ backend
-        // Có thể return "N/A" hoặc lấy từ field khác
-        return "Tồn kho: N/A";
+        return "Tồn kho: " + quantity;
     }
 
     public String getCategoryDisplayText() {
