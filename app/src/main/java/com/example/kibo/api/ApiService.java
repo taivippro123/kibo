@@ -100,4 +100,8 @@ public interface ApiService {
     
     @HTTP(method = "DELETE", path = "CartItems/remove", hasBody = true)
     Call<ApiResponse<String>> removeCartItem(@Body RemoveCartItemRequest request);
+    
+    // Logout endpoint
+    @POST("Auth/logout")
+    Call<ApiResponse<String>> logout();
 }

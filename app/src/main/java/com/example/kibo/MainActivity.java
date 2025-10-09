@@ -21,12 +21,20 @@ import com.example.kibo.utils.SessionManager;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import android.content.Intent;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNav;
     private ApiService apiService;
     private SessionManager sessionManager;
+    
+    // Fragment instances for reuse
+    private HomeFragment homeFragment;
+    private OrdersFragment ordersFragment;
+    private CartFragment cartFragment;
+    private AccountFragment accountFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,32 +44,17 @@ public class MainActivity extends AppCompatActivity {
         bottomNav = findViewById(R.id.bottom_navigation);
         apiService = ApiClient.getApiService();
         sessionManager = new SessionManager(this);
+        
+        // Initialize fragments
+        initializeFragments();
 
         // Check if specific tab should be selected
         int selectedTab = getIntent().getIntExtra("selected_tab", 0);
         
         // Mở mặc định trang Home hoặc tab được chỉ định
-        Fragment initialFragment = new HomeFragment();
-        if (selectedTab == 1) {
-            initialFragment = new OrdersFragment();
-        } else if (selectedTab == 2) {
-            initialFragment = new CartFragment();
-        } else if (selectedTab == 3) {
-            initialFragment = new AccountFragment();
-        }
-        
+        Fragment initialFragment = getFragmentByTab(selectedTab);
         loadFragment(initialFragment);
-        
-        // Set selected tab in bottom navigation
-        if (selectedTab == 1) {
-            bottomNav.setSelectedItemId(R.id.nav_orders);
-        } else if (selectedTab == 2) {
-            bottomNav.setSelectedItemId(R.id.nav_cart);
-        } else if (selectedTab == 3) {
-            bottomNav.setSelectedItemId(R.id.nav_account);
-        } else {
-            bottomNav.setSelectedItemId(R.id.nav_home);
-        }
+        setSelectedTab(selectedTab);
 
         bottomNav.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
             @Override
@@ -70,13 +63,13 @@ public class MainActivity extends AppCompatActivity {
                 int id = item.getItemId();
 
                 if (id == R.id.nav_home) {
-                    selected = new HomeFragment();
+                    selected = homeFragment;
                 } else if (id == R.id.nav_orders) {
-                    selected = new OrdersFragment();
+                    selected = ordersFragment;
                 } else if (id == R.id.nav_cart) {
-                    selected = new CartFragment();
+                    selected = cartFragment;
                 } else if (id == R.id.nav_account) {
-                    selected = new AccountFragment();
+                    selected = accountFragment;
                 }
 
                 if (selected != null) {
@@ -147,22 +140,94 @@ public class MainActivity extends AppCompatActivity {
         if (intent == null || bottomNav == null) return;
         int selectedTab = intent.getIntExtra("selected_tab", -1);
         if (selectedTab == -1) return;
-        Fragment target = null;
-        if (selectedTab == 0) {
-            target = new com.example.kibo.ui.HomeFragment();
-            bottomNav.setSelectedItemId(R.id.nav_home);
-        } else if (selectedTab == 1) {
-            target = new com.example.kibo.ui.OrdersFragment();
-            bottomNav.setSelectedItemId(R.id.nav_orders);
-        } else if (selectedTab == 2) {
-            target = new com.example.kibo.ui.CartFragment();
-            bottomNav.setSelectedItemId(R.id.nav_cart);
-        } else if (selectedTab == 3) {
-            target = new com.example.kibo.ui.AccountFragment();
-            bottomNav.setSelectedItemId(R.id.nav_account);
-        }
+        
+        Fragment target = getFragmentByTab(selectedTab);
         if (target != null) {
             loadFragment(target);
+            setSelectedTab(selectedTab);
         }
+    }
+    
+    // ============ Helper Methods ============
+    
+    private void initializeFragments() {
+        homeFragment = new HomeFragment();
+        ordersFragment = new OrdersFragment();
+        cartFragment = new CartFragment();
+        accountFragment = new AccountFragment();
+    }
+    
+    private Fragment getFragmentByTab(int tabIndex) {
+        switch (tabIndex) {
+            case 0: return homeFragment;
+            case 1: return ordersFragment;
+            case 2: return cartFragment;
+            case 3: return accountFragment;
+            default: return homeFragment;
+        }
+    }
+    
+    private void setSelectedTab(int tabIndex) {
+        switch (tabIndex) {
+            case 0: bottomNav.setSelectedItemId(R.id.nav_home); break;
+            case 1: bottomNav.setSelectedItemId(R.id.nav_orders); break;
+            case 2: bottomNav.setSelectedItemId(R.id.nav_cart); break;
+            case 3: bottomNav.setSelectedItemId(R.id.nav_account); break;
+            default: bottomNav.setSelectedItemId(R.id.nav_home); break;
+        }
+    }
+    
+    // ============ Logout Functionality ============
+    
+    /**
+     * Perform logout with API call and navigate to login
+     */
+    public void performLogout() {
+        if (sessionManager == null) sessionManager = new SessionManager(this);
+        if (apiService == null) apiService = ApiClient.getApiService();
+        
+        sessionManager.logout(apiService, new SessionManager.LogoutCallback() {
+            @Override
+            public void onSuccess() {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "Đã đăng xuất thành công", Toast.LENGTH_SHORT).show();
+                    navigateToLogin();
+                });
+            }
+            
+            @Override
+            public void onError(String errorMessage) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "Đã đăng xuất", Toast.LENGTH_SHORT).show();
+                    navigateToLogin();
+                });
+            }
+        });
+    }
+    
+    private void navigateToLogin() {
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+    
+    // ============ Session Management ============
+    
+    /**
+     * Check if user is still logged in
+     */
+    public boolean isUserLoggedIn() {
+        return sessionManager != null && sessionManager.isLoggedIn();
+    }
+    
+    /**
+     * Handle session expired
+     */
+    public void handleSessionExpired() {
+        runOnUiThread(() -> {
+            Toast.makeText(this, "Phiên đăng nhập đã hết hạn", Toast.LENGTH_SHORT).show();
+            navigateToLogin();
+        });
     }
 }
