@@ -10,4 +10,24 @@
 
     <!-- Màu đỏ của GearVN -->
     <color name="primary_color">#E30019</color>
+
+    
+    <!-- Splash Screen Colors - Medium Red Theme -->
+    <color name="splash_start">#F13B3B</color>
+    <color name="splash_end">#D11E1E</color>
+    <color name="red_light">#FF6666</color>
+    <color name="red_dark">#A61E1E</color>
+    
+    <!-- White Variations -->
+    <color name="white_70">#B3FFFFFF</color>
+    <color name="white_50">#80FFFFFF</color>
+    
+    <!-- Gray Variations -->
+    <color name="gray_light">#E0E0E0</color>
+    <color name="gray_medium">#757575</color>
+    <color name="gray_dark">#424242</color>
+
+    <color name="green">#4CAF50</color>
+    <color name="orange">#FF9800</color>
+    <color name="blue">#2196F3</color>
 </resources>

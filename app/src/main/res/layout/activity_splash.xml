@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/splash_background"
+    android:gravity="center">
+
+    <!-- Main Container -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_centerInParent="true">
+
+        <!-- Logo Image -->
+
+        <!-- App Name -->
+        <ImageView
+            android:id="@+id/logo_image"
+            android:layout_width="316dp"
+            android:layout_height="347dp"
+            android:layout_marginBottom="10dp"
+            android:contentDescription="KIBO Logo"
+            android:scaleType="centerInside"
+            android:src="@drawable/kibo_logo" />
+
+        <!-- Tagline -->
+        <TextView
+            android:id="@+id/app_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.1"
+            android:text="KIBO"
+            android:textColor="@color/white"
+            android:textSize="36sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tagline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your best keyboard is here"
+            android:textSize="16sp"
+            android:textColor="@color/white_70"
+            android:fontFamily="sans-serif-black"
+            android:alpha="0.9" />
+
+    </LinearLayout>
+
+    <!-- Loading Indicator -->
+    <ProgressBar
+        android:id="@+id/loading_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="40dp"
+        android:indeterminateTint="@color/white"
+        android:indeterminateTintMode="src_in" />
+
+    <!-- Version Info -->
+
+</RelativeLayout>
