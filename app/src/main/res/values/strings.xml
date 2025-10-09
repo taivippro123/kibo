@@ -1,4 +1,27 @@
 <resources>
     <string name="app_name">Kibo</string>
     <string name="hello">Xin chào!</string>
+
+    <string name="hint_product_name">Tên sản phẩm</string>
+    <string name="hint_brand">Thương hiệu</string>
+    <string name="hint_price">Giá (đ)</string>
+    <string name="hint_discount">Giảm giá (%)</string>
+    <string name="hint_stock">Tồn kho</string>
+    <string name="hint_specs">Thông số (switch, keycap, layout...)</string>
+    <string name="hint_description">Mô tả</string>
+    <string name="btn_pick_images">Chọn ảnh</string>
+    <string name="btn_cancel">Hủy</string>
+    <string name="btn_save">Lưu</string>
+    <string name="label_category">Danh mục</string>
+
+    <string name="hint_search_products">Tìm sản phẩm...</string>
+    <string name="cd_search_button">Tìm kiếm</string>
+    <string name="cd_product_image">Ảnh sản phẩm</string>
+    <string name="cd_edit_product">Sửa sản phẩm</string>
+    <string name="cd_delete_product">Xóa sản phẩm</string>
+    <string name="cd_add_product">Thêm sản phẩm</string>
+
+    <string name="sample_product_name">Bàn phím cơ Kibo</string>
+    <string name="sample_price">1.290.000 đ</string>
+    <string name="sample_stock">Tồn kho: 25</string>
 </resources>

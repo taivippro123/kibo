@@ -80,6 +80,19 @@
             android:exported="false"
             android:label="Xác nhận đơn hàng"
             android:theme="@style/Theme.Kibo" />
+
+        <!-- Admin Activities -->
+        <activity
+            android:name=".AdminMainActivity"
+            android:exported="false"
+            android:label="Admin Panel"
+            android:theme="@style/Theme.Kibo" />
+
+        <activity
+            android:name=".AdminProductFormActivity"
+            android:exported="false"
+            android:label="Quản lý sản phẩm"
+            android:theme="@style/Theme.Kibo" />
     </application>
 
 </manifest>

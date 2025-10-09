@@ -120,5 +120,81 @@ public class Product {
     public String getFormattedPrice() {
         return String.format("%,.0fđ", price);
     }
+
+    // Setters - thêm cho admin CRUD operations
+    public void setProductId(int productId) {
+        this.productId = productId;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
+
+    public void setBriefDescription(String briefDescription) {
+        this.briefDescription = briefDescription;
+    }
+
+    public void setFullDescription(String fullDescription) {
+        this.fullDescription = fullDescription;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public void setCategoryId(int categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+    public void setConnection(String connection) {
+        this.connection = connection;
+    }
+
+    public void setLayout(String layout) {
+        this.layout = layout;
+    }
+
+    public void setKeycap(String keycap) {
+        this.keycap = keycap;
+    }
+
+    public void setSwitchType(String switchType) {
+        this.switchType = switchType;
+    }
+
+    public void setBattery(String battery) {
+        this.battery = battery;
+    }
+
+    public void setOs(String os) {
+        this.os = os;
+    }
+
+    public void setLed(String led) {
+        this.led = led;
+    }
+
+    public void setScreen(String screen) {
+        this.screen = screen;
+    }
+
+    // Helper methods cho admin
+    public String getStockText() {
+        // Vì Product model không có stock field từ backend
+        // Có thể return "N/A" hoặc lấy từ field khác
+        return "Tồn kho: N/A";
+    }
+
+    public String getCategoryDisplayText() {
+        return categoryName != null ? categoryName : "Chưa phân loại";
+    }
 }
 

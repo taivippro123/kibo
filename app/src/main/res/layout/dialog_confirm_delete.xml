@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:padding="20dp"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/tv_message"
+        android:text="Xóa sản phẩm này?"
+        android:textSize="16sp"
+        android:textColor="@color/gray_dark"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:layout_marginTop="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_no"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Không"
+            android:background="@drawable/button_transparent_background"
+            android:textColor="@color/gray_dark" />
+
+        <Space android:layout_width="12dp" android:layout_height="0dp" />
+
+        <Button
+            android:id="@+id/btn_yes"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="Xóa"
+            android:background="@drawable/button_red_background"
+            android:textColor="@android:color/white" />
+    </LinearLayout>
+</LinearLayout>
