@@ -198,6 +198,63 @@ public class SessionManager {
         editor.apply();
     }
     
+    /**
+     * Perform logout with API call and clear session
+     * @param apiService The API service to call logout endpoint
+     * @param callback Callback to handle the result
+     */
+    public void logout(com.example.kibo.api.ApiService apiService, LogoutCallback callback) {
+        String accessToken = getAccessToken();
+        
+        if (accessToken == null || accessToken.isEmpty()) {
+            // No token, just clear local session
+            clearSession();
+            if (callback != null) {
+                callback.onSuccess();
+            }
+            return;
+        }
+        
+        // Call logout API
+        retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call = apiService.logout();
+        call.enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
+            @Override
+            public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, 
+                                 retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
+                
+                // Always clear local session regardless of API response
+                clearSession();
+                
+                if (callback != null) {
+                    if (response.isSuccessful()) {
+                        callback.onSuccess();
+                    } else {
+                        callback.onError("Logout API failed but local session cleared");
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, 
+                                Throwable t) {
+                // Clear local session even if API call fails
+                clearSession();
+                
+                if (callback != null) {
+                    callback.onError("Network error but local session cleared");
+                }
+            }
+        });
+    }
+    
+    /**
+     * Callback interface for logout operation
+     */
+    public interface LogoutCallback {
+        void onSuccess();
+        void onError(String errorMessage);
+    }
+    
     // ============ Helper Methods ============
     
     /**

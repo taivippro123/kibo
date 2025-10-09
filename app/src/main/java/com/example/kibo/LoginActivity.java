@@ -329,7 +329,20 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void navigateToMainActivity() {
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        // Check user role to determine which activity to navigate to
+        int userRole = sharedPreferences.getInt("user_role", -1);
+        
+        Intent intent;
+        if (userRole == 0) {
+            // Role 0 = Admin, navigate to AdminMainActivity
+            intent = new Intent(LoginActivity.this, AdminMainActivity.class);
+            android.util.Log.d("LoginActivity", "Navigating to AdminMainActivity for role: " + userRole);
+        } else {
+            // Other roles = Regular user, navigate to MainActivity
+            intent = new Intent(LoginActivity.this, MainActivity.class);
+            android.util.Log.d("LoginActivity", "Navigating to MainActivity for role: " + userRole);
+        }
+        
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
@@ -487,20 +500,14 @@ public class LoginActivity extends AppCompatActivity {
                             // Show success message
                             Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
 
-                            // Navigate to main activity
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            finish();
-                            overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+                            // Navigate to appropriate activity based on role
+                            navigateToMainActivity();
                         } else {
                             // User data is null but API says success
                             Toast.makeText(LoginActivity.this, "Đăng nhập thành công nhưng thiếu thông tin người dùng", Toast.LENGTH_SHORT).show();
                             
-                            // Still navigate to main activity
-                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            finish();
-                            overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+                            // Still navigate to appropriate activity based on role
+                            navigateToMainActivity();
                         }
                     } else {
                         // API returned success=false
@@ -513,11 +520,8 @@ public class LoginActivity extends AppCompatActivity {
                     android.util.Log.d("LoginActivity", "HTTP 200 but response body is null");
                     Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
                     
-                    // Navigate to main activity anyway
-                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                    startActivity(intent);
-                    finish();
-                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+                    // Navigate to appropriate activity anyway
+                    navigateToMainActivity();
                 } else {
                     // HTTP error (400, 401, 500, etc.)
                     String errorMessage = "Đăng nhập thất bại";
@@ -567,11 +571,8 @@ public class LoginActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     Toast.makeText(LoginActivity.this, "Đăng nhập thành công (Raw)!", Toast.LENGTH_SHORT).show();
                     
-                    // Navigate to main activity
-                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                    startActivity(intent);
-                    finish();
-                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+                    // Navigate to appropriate activity
+                    navigateToMainActivity();
                 }
             }
 
