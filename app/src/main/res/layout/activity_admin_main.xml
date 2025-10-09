@@ -27,6 +27,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@android:color/white"
+        app:labelVisibilityMode="labeled"
         app:itemIconTint="@color/nav_item_color"
         app:itemTextColor="@color/nav_item_color"
         app:menu="@menu/admin_bottom_nav" />

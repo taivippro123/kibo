@@ -12,6 +12,7 @@ import com.example.kibo.models.District;
 import com.example.kibo.models.Ward;
 import com.example.kibo.models.UpdateUserRequest;
 import com.example.kibo.models.FullAddressResponse;
+import com.example.kibo.models.CategoryResponse;
 import com.example.kibo.models.Cart;
 import com.example.kibo.models.CartRequest;
 import com.example.kibo.models.CartItemRequest;
@@ -25,6 +26,10 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.Multipart;
+import retrofit2.http.Part;
+import retrofit2.http.PartMap;
+import retrofit2.http.Path;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
@@ -63,6 +68,56 @@ public interface ApiService {
     // Get product by ID
     @GET("Products")
     Call<ProductResponse> getProductById(@Query("Productid") int productId);
+
+    // Create product (multipart/form-data) with multiple images
+    @Multipart
+    @POST("Products")
+    Call<ApiResponse<String>> createProduct(
+        @Part("Productname") okhttp3.RequestBody productname,
+        @Part("Briefdescription") okhttp3.RequestBody briefdescription,
+        @Part("Fulldescription") okhttp3.RequestBody fulldescription,
+        @Part("Price") okhttp3.RequestBody price,
+        @Part("Categoryid") okhttp3.RequestBody categoryid,
+        @Part("Connection") okhttp3.RequestBody connection,
+        @Part("Layout") okhttp3.RequestBody layout,
+        @Part("Keycap") okhttp3.RequestBody keycap,
+        @Part("Switch") okhttp3.RequestBody switchType,
+        @Part("Battery") okhttp3.RequestBody battery,
+        @Part("Os") okhttp3.RequestBody os,
+        @Part("Led") okhttp3.RequestBody led,
+        @Part("Screen") okhttp3.RequestBody screen,
+        @Part("Width") okhttp3.RequestBody width,
+        @Part("Length") okhttp3.RequestBody length,
+        @Part("Height") okhttp3.RequestBody height,
+        @Part("Quantity") okhttp3.RequestBody quantity,
+        @Part java.util.List<okhttp3.MultipartBody.Part> ImageFiles
+    );
+
+    // Update product (multipart/form-data) single image file key ImageFile
+    @Multipart
+    @PUT("Products/{id}")
+    Call<ApiResponse<String>> updateProduct(
+        @Path("id") int id,
+        @Part("Productid") okhttp3.RequestBody productid,
+        @Part("Productname") okhttp3.RequestBody productname,
+        @Part("Briefdescription") okhttp3.RequestBody briefdescription,
+        @Part("Fulldescription") okhttp3.RequestBody fulldescription,
+        @Part("Price") okhttp3.RequestBody price,
+        @Part("Categoryid") okhttp3.RequestBody categoryid,
+        @Part("Connection") okhttp3.RequestBody connection,
+        @Part("Layout") okhttp3.RequestBody layout,
+        @Part("Keycap") okhttp3.RequestBody keycap,
+        @Part("Switch") okhttp3.RequestBody switchType,
+        @Part("Battery") okhttp3.RequestBody battery,
+        @Part("Os") okhttp3.RequestBody os,
+        @Part("Led") okhttp3.RequestBody led,
+        @Part("Screen") okhttp3.RequestBody screen,
+        @Part("Width") okhttp3.RequestBody width,
+        @Part("Length") okhttp3.RequestBody length,
+        @Part("Height") okhttp3.RequestBody height,
+        @Part("Quantity") okhttp3.RequestBody quantity,
+        @Part okhttp3.MultipartBody.Part ImageFile
+    );
     
     // Address endpoints
     @GET("Address/provinces")
@@ -104,4 +159,8 @@ public interface ApiService {
     // Logout endpoint
     @POST("Auth/logout")
     Call<ApiResponse<String>> logout();
+
+    // Categories for brand dropdown
+    @GET("Categories")
+    Call<CategoryResponse> getCategories();
 }

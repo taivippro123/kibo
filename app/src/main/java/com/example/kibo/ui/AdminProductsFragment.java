@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -16,17 +17,19 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.kibo.R;
 import com.example.kibo.AdminProductFormActivity;
+import com.example.kibo.api.ApiClient;
+import com.example.kibo.api.ApiService;
+import com.example.kibo.models.ProductResponse;
 import com.example.kibo.adapters.AdminProductAdapter;
 import com.example.kibo.models.Product;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+ 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AdminProductsFragment extends Fragment {
     private RecyclerView rvProducts;
     private EditText etSearch;
-    private ImageButton btnSearch;
-    private FloatingActionButton fabAdd;
+    private ImageButton btnAdd;
     private AdminProductAdapter adapter;
     private List<Product> productList;
 
@@ -45,52 +48,22 @@ public class AdminProductsFragment extends Fragment {
     private void setupViews(View view) {
         rvProducts = view.findViewById(R.id.rv_admin_products);
         etSearch = view.findViewById(R.id.et_search_products);
-        btnSearch = view.findViewById(R.id.btn_search);
-        fabAdd = view.findViewById(R.id.fab_add_product);
+        btnAdd = view.findViewById(R.id.btn_add_product);
 
         rvProducts.setLayoutManager(new LinearLayoutManager(getContext()));
     }
 
     private void setupData() {
         productList = new ArrayList<>();
-        createSampleData();
-
         adapter = new AdminProductAdapter(productList, this::onEditClick, this::onDeleteClick);
         rvProducts.setAdapter(adapter);
+        loadProductsFromApi();
     }
 
-    private void createSampleData() {
-        // Tạo Product objects với dữ liệu mẫu
-        Product product1 = new Product();
-        product1.setProductId(1);
-        product1.setProductName("Bàn phím cơ Kibo Pro");
-        product1.setPrice(1290000);
-        product1.setBriefDescription("Bàn phím cơ cao cấp với switch Cherry MX");
-        product1.setCategoryName("Bàn phím cơ");
-        product1.setImageUrl("https://example.com/kibo-pro.jpg");
-        productList.add(product1);
-
-        Product product2 = new Product();
-        product2.setProductId(2);
-        product2.setProductName("Bàn phím cơ Kibo RGB");
-        product2.setPrice(1590000);
-        product2.setBriefDescription("Bàn phím cơ với đèn LED RGB đa màu");
-        product2.setCategoryName("Bàn phím cơ");
-        product2.setImageUrl("https://example.com/kibo-rgb.jpg");
-        productList.add(product2);
-
-        Product product3 = new Product();
-        product3.setProductId(3);
-        product3.setProductName("Bàn phím cơ Kibo Wireless");
-        product3.setPrice(1890000);
-        product3.setBriefDescription("Bàn phím cơ không dây tiện lợi");
-        product3.setCategoryName("Bàn phím cơ");
-        product3.setImageUrl("https://example.com/kibo-wireless.jpg");
-        productList.add(product3);
-    }
+    private void createSampleData() { }
 
     private void setupListeners() {
-        fabAdd.setOnClickListener(v -> openProductForm());
+        btnAdd.setOnClickListener(v -> openProductForm());
 
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
@@ -133,11 +106,28 @@ public class AdminProductsFragment extends Fragment {
         adapter.filterList(filteredList);
     }
 
-    // TODO: Implement API call
+    // Load products from API and bind to adapter
     private void loadProductsFromApi() {
-        // Call API để lấy danh sách sản phẩm
-        // ApiService apiService = ApiClient.getApiService();
-        // Call<ProductResponse> call = apiService.getAdminProducts(1, 50);
-        // ...
+        ApiService apiService = ApiClient.getApiService();
+        apiService.getAllProducts().enqueue(new retrofit2.Callback<ProductResponse>() {
+            @Override
+            public void onResponse(retrofit2.Call<ProductResponse> call, retrofit2.Response<ProductResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<Product> data = response.body().getData();
+                    if (data != null) {
+                        productList.clear();
+                        productList.addAll(data);
+                        adapter.filterList(new ArrayList<>(productList));
+                    }
+                } else {
+                    Toast.makeText(getContext(), "Tải sản phẩm thất bại", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<ProductResponse> call, Throwable t) {
+                Toast.makeText(getContext(), "Lỗi mạng khi tải sản phẩm", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

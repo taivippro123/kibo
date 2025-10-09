@@ -11,6 +11,7 @@ import com.example.kibo.R;
 import com.example.kibo.ui.AdminDashboardFragment;
 import com.example.kibo.ui.AdminProductsFragment;
 import com.example.kibo.ui.AdminAccountFragment;
+import com.example.kibo.ui.AdminMessagesFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
@@ -25,6 +26,7 @@ public class AdminMainActivity extends AppCompatActivity {
     private AdminDashboardFragment dashboardFragment;
     private AdminProductsFragment productsFragment;
     private AdminAccountFragment accountFragment;
+    private AdminMessagesFragment messagesFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +63,8 @@ public class AdminMainActivity extends AppCompatActivity {
             selected = dashboardFragment;
         } else if (id == R.id.nav_admin_products) {
             selected = productsFragment;
+        } else if (id == R.id.nav_admin_messages) {
+            selected = messagesFragment;
         } else if (id == R.id.nav_admin_account) {
             selected = accountFragment;
         }
@@ -86,6 +90,7 @@ public class AdminMainActivity extends AppCompatActivity {
         dashboardFragment = new AdminDashboardFragment();
         productsFragment = new AdminProductsFragment();
         accountFragment = new AdminAccountFragment();
+        messagesFragment = new AdminMessagesFragment();
     }
     
     // ============ Logout Functionality ============
