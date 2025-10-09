@@ -3,13 +3,17 @@
     <item
         android:id="@+id/nav_admin_dashboard"
         android:icon="@drawable/ic_dashboard"
-        android:title="Dashboard" />
+        android:title="Trang chủ" />
     <item
         android:id="@+id/nav_admin_products"
         android:icon="@drawable/ic_keyboard"
-        android:title="Products" />
+        android:title="Sản phẩm" />
+    <item
+        android:id="@+id/nav_admin_messages"
+        android:icon="@drawable/ic_chat"
+        android:title="Tin nhắn" />
     <item
         android:id="@+id/nav_admin_account"
         android:icon="@drawable/ic_account"
-        android:title="Account" />
+        android:title="Tài khoản" />
 </menu>
