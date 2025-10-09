@@ -80,6 +80,12 @@
             android:exported="false"
             android:label="Xác nhận đơn hàng"
             android:theme="@style/Theme.Kibo" />
+            
+        <activity
+            android:name=".VoucherSelectionActivity"
+            android:exported="false"
+            android:label="Chọn mã giảm giá"
+            android:theme="@style/Theme.Kibo" />
 
         <!-- Admin Activities -->
         <activity

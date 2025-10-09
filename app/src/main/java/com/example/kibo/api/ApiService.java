@@ -20,6 +20,13 @@ import com.example.kibo.models.CartItem;
 import com.example.kibo.models.CartItemsResponse;
 import com.example.kibo.models.UpdateQuantityRequest;
 import com.example.kibo.models.RemoveCartItemRequest;
+import com.example.kibo.models.ShippingFeeRequest;
+import com.example.kibo.models.ShippingFeeResponse;
+import com.example.kibo.models.UserResponse;
+import com.example.kibo.models.VoucherResponse;
+import com.example.kibo.models.VoucherUseResponse;
+import com.example.kibo.models.ShippingOrderRequest;
+import com.example.kibo.models.ShippingOrderResponse;
 
 import java.util.List;
 
@@ -163,4 +170,24 @@ public interface ApiService {
     // Categories for brand dropdown
     @GET("Categories")
     Call<CategoryResponse> getCategories();
+    
+    // Get user by ID
+    @GET("Users")
+    Call<UserResponse> getUserById(@Query("Userid") int userId);
+    
+    // Calculate shipping fee
+    @POST("Shipping/fee")
+    Call<ShippingFeeResponse> calculateShippingFee(@Body ShippingFeeRequest request);
+    
+    // Get vouchers
+    @GET("Vouchers")
+    Call<VoucherResponse> getVouchers(@Query("isActive") boolean isActive);
+    
+    // Use voucher
+    @POST("Vouchers/use/{code}")
+    Call<VoucherUseResponse> useVoucher(@Path("code") String voucherCode, @Body double orderValue);
+    
+    // Create shipping order
+    @POST("Shipping/order")
+    Call<ShippingOrderResponse> createShippingOrder(@Body ShippingOrderRequest request);
 }

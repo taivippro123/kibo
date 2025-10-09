@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Voucher Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/text_voucher_code"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="SALE10"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#1976D2" />
+
+            <TextView
+                android:id="@+id/text_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Có thể sử dụng"
+                android:textSize="12sp"
+                android:textColor="#4CAF50"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Description -->
+        <TextView
+            android:id="@+id/text_voucher_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Giảm 10% cho đơn từ 500k"
+            android:textSize="14sp"
+            android:textColor="#212121"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Discount Value -->
+        <TextView
+            android:id="@+id/text_discount_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Giảm 10%"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#FF5722"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Min Order -->
+        <TextView
+            android:id="@+id/text_min_order"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Đơn tối thiểu 500,000đ"
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Expiry Date -->
+        <TextView
+            android:id="@+id/text_expiry_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HSD: 2025-11-08"
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Quantity -->
+        <TextView
+            android:id="@+id/text_quantity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Còn lại: 100"
+            android:textSize="12sp"
+            android:textColor="#FF5722"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
