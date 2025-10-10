@@ -27,6 +27,7 @@ import com.example.kibo.models.VoucherResponse;
 import com.example.kibo.models.VoucherUseResponse;
 import com.example.kibo.models.ShippingOrderRequest;
 import com.example.kibo.models.ShippingOrderResponse;
+import com.example.kibo.models.ProductImage;
 
 import java.util.List;
 
@@ -75,6 +76,10 @@ public interface ApiService {
     // Get product by ID
     @GET("Products")
     Call<ProductResponse> getProductById(@Query("Productid") int productId);
+    
+    // Get product images
+    @GET("ProductImages/product/{productId}")
+    Call<List<ProductImage>> getProductImages(@Path("productId") int productId);
 
     // Create product (multipart/form-data) with multiple images
     @Multipart
