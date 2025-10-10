@@ -12,6 +12,8 @@ import com.example.kibo.models.Product;
 import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
 import com.example.kibo.models.ApiResponse;
+import com.example.kibo.models.ProductResponse;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,11 +85,87 @@ public class AdminProductFormActivity extends AppCompatActivity {
 
     private void loadProductData() {
         // TODO: Load dữ liệu sản phẩm từ API
-        // Tạm thời dùng dữ liệu mẫu
-        etName.setText("Bàn phím cơ Kibo Pro");
-        etPrice.setText("1290000");
+        if (productId == -1) {
+            Toast.makeText(this, "Không tìm thấy ID sản phẩm", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        // Hiển thị loading
+        Toast.makeText(this, "Đang tải thông tin sản phẩm...", Toast.LENGTH_SHORT).show();
+
+        ApiService apiService = ApiClient.getApiService();
+        apiService.getProductById(productId).enqueue(new Callback<ProductResponse>() {
+            @Override
+            public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                    List<Product> products = response.body().getData();
+                    if (!products.isEmpty()) {
+                        Product product = products.get(0);
+                        populateFormWithProductData(product);
+                    } else {
+                        Toast.makeText(AdminProductFormActivity.this, "Không tìm thấy sản phẩm", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                } else {
+                    Toast.makeText(AdminProductFormActivity.this, "Lỗi khi tải thông tin sản phẩm", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ProductResponse> call, Throwable t) {
+                Toast.makeText(AdminProductFormActivity.this, "Lỗi mạng khi tải thông tin sản phẩm", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        });
+    }
+    private void populateFormWithProductData(Product product) {
+        // Điền thông tin cơ bản
+        etName.setText(product.getProductName());
+        etBrief.setText(product.getBriefDescription());
+        etFull.setText(product.getFullDescription());
+        etPrice.setText(String.valueOf((int) product.getPrice()));
+        etQuantity.setText(String.valueOf(product.getQuantity()));
+        // Điền thông tin kỹ thuật
+        etConnection.setText(product.getConnection());
+        etLayout.setText(product.getLayout());
+        etKeycap.setText(product.getKeycap());
+        etSwitch.setText(product.getSwitchType());
+        etBattery.setText(product.getBattery());
+        etOs.setText(product.getOs());
+        etLed.setText(product.getLed());
+        etScreen.setText(product.getScreen());
+        etWidth.setText(String.valueOf(product.getWidth()));
+        etLength.setText(String.valueOf(product.getLength()));
+        etHeight.setText(String.valueOf(product.getHeight()));
+
+        // Set category (cần load categories trước)
+        setSelectedCategory(product.getCategoryId(), product.getCategoryName());
+
+        // TODO: Load và hiển thị ảnh hiện tại của sản phẩm
+        loadCurrentProductImages(product.getImageUrl());
+    }
+    private void setSelectedCategory(int categoryId, String categoryName) {
+        // Tìm category trong danh sách đã load và set
+        for (int i = 0; i < categoryList.size(); i++) {
+            com.example.kibo.models.Category category = categoryList.get(i);
+            if (category.getCategoryId() == categoryId) {
+                actvCategory.setText(category.getCategoryName(), false);
+                selectedCategoryId = categoryId;
+                break;
+            }
+        }
     }
 
+    private void loadCurrentProductImages(String imageUrl) {
+        // TODO: Hiển thị ảnh hiện tại của sản phẩm
+        // Có thể tạo ImageView để preview ảnh hiện tại
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            // Thêm ImageView vào layoutPreviewImages để hiển thị ảnh hiện tại
+            // với text "Ảnh hiện tại" và button "Thay đổi"
+        }
+    }
     private java.util.List<com.example.kibo.models.Category> categoryList = new java.util.ArrayList<>();
     private Integer selectedCategoryId = null;
 
@@ -114,7 +192,11 @@ public class AdminProductFormActivity extends AppCompatActivity {
                         selectedCategoryId = categoryList.get(position).getCategoryId();
                     });
                     // Prefill: nếu có dữ liệu, chọn item đầu để hiện tên
-                    if (!names.isEmpty()) {
+                    // Nếu là edit mode, load product data sau khi categories đã sẵn sàng
+                    if (isEditMode && productId != -1) {
+                        loadProductData();
+                    }
+                    else if (!names.isEmpty()) {
                         actvCategory.setText(names.get(0), false);
                         selectedCategoryId = categoryList.get(0).getCategoryId();
                     }
@@ -122,7 +204,9 @@ public class AdminProductFormActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<com.example.kibo.models.CategoryResponse> call, Throwable t) { }
+            public void onFailure(Call<com.example.kibo.models.CategoryResponse> call, Throwable t) {
+                Toast.makeText(AdminProductFormActivity.this, "Lỗi khi tải danh mục", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 

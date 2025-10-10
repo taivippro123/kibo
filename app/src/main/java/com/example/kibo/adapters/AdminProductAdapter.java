@@ -11,12 +11,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.kibo.R;
 import com.example.kibo.models.Product;
+import com.example.kibo.models.Category; // ✅ THÊM IMPORT
 import java.util.ArrayList;
 import java.util.List;
 
 public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapter.ProductViewHolder> {
 
     private List<Product> productList;
+    private List<Category> categoryList; // ✅ THÊM DANH SÁCH CATEGORIES
     private OnEditClickListener onEditClickListener;
     private OnDeleteClickListener onDeleteClickListener;
 
@@ -29,9 +31,11 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
     }
 
     public AdminProductAdapter(List<Product> productList,
+                               List<Category> categoryList, // ✅ THÊM PARAMETER
                                OnEditClickListener onEditClickListener,
                                OnDeleteClickListener onDeleteClickListener) {
         this.productList = new ArrayList<>(productList);
+        this.categoryList = new ArrayList<>(categoryList); // ✅ KHỞI TẠO
         this.onEditClickListener = onEditClickListener;
         this.onDeleteClickListener = onDeleteClickListener;
     }
@@ -51,7 +55,11 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
         // Gắn dữ liệu từ Product model
         holder.tvName.setText(product.getProductName());
         holder.tvPrice.setText(product.getFormattedPrice());
-        holder.tvStock.setText("Tồn kho: N/A"); // Vì Product model không có stock field
+        holder.tvStock.setText(product.getStockText());
+
+        // ✅ SỬ DỤNG HELPER METHOD
+        String categoryName = getCategoryNameById(product.getCategoryId());
+        holder.tvCategory.setText("Danh mục: " + categoryName);
 
         // Load ảnh sản phẩm
         if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
@@ -68,6 +76,16 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
         holder.btnDelete.setOnClickListener(v -> onDeleteClickListener.onDeleteClick(product));
     }
 
+    // ✅ HELPER METHOD - GIỐNG NHƯ TRONG ADMINPRODUCTFORMACTIVITY
+    private String getCategoryNameById(int categoryId) {
+        for (Category category : categoryList) {
+            if (category.getCategoryId() == categoryId) {
+                return category.getCategoryName();
+            }
+        }
+        return "Chưa phân loại";
+    }
+
     @Override
     public int getItemCount() {
         return productList.size();
@@ -79,9 +97,17 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
         notifyDataSetChanged();
     }
 
+    // ✅ METHOD ĐỂ UPDATE CATEGORY LIST
+    public void updateCategoryList(List<Category> newCategoryList) {
+        this.categoryList.clear();
+        this.categoryList.addAll(newCategoryList);
+        notifyDataSetChanged(); // Refresh để hiển thị category names mới
+    }
+
     static class ProductViewHolder extends RecyclerView.ViewHolder {
         ImageView imgThumb;
         TextView tvName, tvPrice, tvStock;
+        TextView tvCategory;
         ImageButton btnEdit, btnDelete;
 
         public ProductViewHolder(@NonNull View itemView) {
@@ -90,6 +116,7 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
             tvName = itemView.findViewById(R.id.tv_name);
             tvPrice = itemView.findViewById(R.id.tv_price);
             tvStock = itemView.findViewById(R.id.tv_stock);
+            tvCategory = itemView.findViewById(R.id.tv_category);
             btnEdit = itemView.findViewById(R.id.btn_edit);
             btnDelete = itemView.findViewById(R.id.btn_delete);
         }
