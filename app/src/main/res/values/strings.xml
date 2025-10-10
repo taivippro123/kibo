@@ -22,6 +22,7 @@
     <string name="cd_add_product">Thêm sản phẩm</string>
 
     <string name="sample_product_name">Bàn phím cơ Kibo</string>
+    <string name="sample_category_name">Danh mục sản phẩm</string>
     <string name="sample_price">1.290.000 đ</string>
     <string name="sample_stock">Tồn kho: 25</string>
 </resources>

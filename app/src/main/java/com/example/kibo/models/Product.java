@@ -36,7 +36,7 @@ public class Product {
     @SerializedName("keycap")
     private String keycap;
     
-    @SerializedName("switch")
+    @SerializedName("switch_type")
     private String switchType;
     
     @SerializedName("battery")
