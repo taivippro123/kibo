@@ -53,14 +53,43 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Product Image -->
-            <ImageView
-                android:id="@+id/img_product_detail"
+            <!-- Product Image Gallery -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="300dp"
-                android:scaleType="centerCrop"
-                android:background="@color/gray_light"
-                android:src="@drawable/kibo_logo"/>
+                android:background="@color/gray_light">
+                
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/view_pager_images"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+                
+                <!-- Image indicators -->
+                <LinearLayout
+                    android:id="@+id/layout_indicators"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:orientation="horizontal"
+                    android:padding="8dp"
+                    android:background="@drawable/indicator_background" />
+                
+                <!-- Image counter -->
+                <TextView
+                    android:id="@+id/tv_image_counter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="16dp"
+                    android:background="@drawable/indicator_background"
+                    android:padding="8dp"
+                    android:text="1/3"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+                
+            </FrameLayout>
 
             <!-- Product Info -->
             <LinearLayout

@@ -55,9 +55,6 @@ public class ConfirmOrderActivity extends AppCompatActivity {
     private Voucher selectedVoucher;
     private double voucherDiscount = 0;
     private com.example.kibo.models.Product firstProduct; // Store first product for dimensions
-    private String toWardName = "";
-    private String toDistrictName = "";
-    private String toProvinceName = "";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -163,17 +160,6 @@ public class ConfirmOrderActivity extends AppCompatActivity {
                     if (fullText == null) fullText = "";
                     String combined = address != null && !address.isEmpty() ? address + ", " + fullText : fullText;
                     textViewUserAddress.setText(combined);
-                    
-                    // Store address names for shipping order
-                    if (full.getWard() != null) {
-                        toWardName = full.getWard().getWardName();
-                    }
-                    if (full.getDistrict() != null) {
-                        toDistrictName = full.getDistrict().getDistrictName();
-                    }
-                    if (full.getProvince() != null) {
-                        toProvinceName = full.getProvince().getProvinceName();
-                    }
                 } else {
                     textViewUserAddress.setText(address != null && !address.isEmpty() ? address : "Chưa cập nhật địa chỉ");
                 }
@@ -548,6 +534,7 @@ public class ConfirmOrderActivity extends AppCompatActivity {
         int toDistrictId = user.getDistrictid();
         int toWardId = user.getWardid();
         String toWardCode = String.valueOf(toWardId);
+        int userId = user.getUserid();
         
         // Get product dimensions
         int weight = firstProduct.getWeight() > 0 ? firstProduct.getWeight() : 1000; // Default 1kg
@@ -558,35 +545,10 @@ public class ConfirmOrderActivity extends AppCompatActivity {
         // Create shipping order request
         com.example.kibo.models.ShippingOrderRequest request = new com.example.kibo.models.ShippingOrderRequest(
             toName, toPhone, toAddress, 
-            toWardCode, toWardName,
-            toDistrictId, toDistrictName,
-            toProvinceName,
-            weight, length, width, height
+            toWardCode, toDistrictId,
+            weight, length, width, height,
+            userId, cartId
         );
-        
-        // Add items array with product information
-        java.util.List<com.example.kibo.models.ShippingOrderRequest.OrderItem> orderItems = new java.util.ArrayList<>();
-        for (CartItem cartItem : items) {
-            // Get product info
-            String productName = cartItem.getProductName() != null ? cartItem.getProductName() : "Sản phẩm";
-            String productCode = "PROD" + cartItem.getProductId();
-            int quantity = cartItem.getQuantity();
-            int price = (int) cartItem.getPrice();
-            
-            // Use first product dimensions for all items or individual if available
-            int itemLength = firstProduct != null && firstProduct.getLength() > 0 ? firstProduct.getLength() : 10;
-            int itemWidth = firstProduct != null && firstProduct.getWidth() > 0 ? firstProduct.getWidth() : 10;
-            int itemHeight = firstProduct != null && firstProduct.getHeight() > 0 ? firstProduct.getHeight() : 10;
-            int itemWeight = firstProduct != null && firstProduct.getWeight() > 0 ? firstProduct.getWeight() : 1000;
-            
-            com.example.kibo.models.ShippingOrderRequest.OrderItem orderItem = 
-                new com.example.kibo.models.ShippingOrderRequest.OrderItem(
-                    productName, productCode, quantity, price,
-                    itemLength, itemWidth, itemHeight, itemWeight
-                );
-            orderItems.add(orderItem);
-        }
-        request.setItems(orderItems);
         
         // Show loading
         buttonConfirmOrder.setEnabled(false);

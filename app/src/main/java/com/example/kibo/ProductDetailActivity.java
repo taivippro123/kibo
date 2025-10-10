@@ -16,20 +16,30 @@ import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
 import com.example.kibo.models.Product;
 import com.example.kibo.models.ProductResponse;
+import com.example.kibo.models.ProductImage;
 import com.example.kibo.models.Cart;
 import com.example.kibo.models.CartRequest;
 import com.example.kibo.models.CartItemRequest;
 import com.example.kibo.models.ApiResponse;
 import com.example.kibo.utils.SessionManager;
+import com.example.kibo.adapters.ProductImageAdapter;
+import androidx.viewpager2.widget.ViewPager2;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProductDetailActivity extends AppCompatActivity {
     private static final String TAG = "ProductDetailActivity";
     public static final String EXTRA_PRODUCT_ID = "product_id";
     
-    private ImageView imgProduct;
+    private ViewPager2 viewPagerImages;
+    private LinearLayout layoutIndicators;
+    private TextView tvImageCounter;
+    private ProductImageAdapter imageAdapter;
+    private List<ProductImage> productImages = new ArrayList<>();
+    
     private TextView tvProductName;
     private TextView tvPrice;
     private TextView tvBriefDescription;
@@ -84,7 +94,9 @@ public class ProductDetailActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        imgProduct = findViewById(R.id.img_product_detail);
+        viewPagerImages = findViewById(R.id.view_pager_images);
+        layoutIndicators = findViewById(R.id.layout_indicators);
+        tvImageCounter = findViewById(R.id.tv_image_counter);
         tvProductName = findViewById(R.id.tv_product_name);
         tvPrice = findViewById(R.id.tv_product_price);
         tvBriefDescription = findViewById(R.id.tv_brief_description);
@@ -101,6 +113,25 @@ public class ProductDetailActivity extends AppCompatActivity {
         btnChat = findViewById(R.id.btn_chat);
         btnBuy = findViewById(R.id.btn_buy);
         loadingLayout = findViewById(R.id.loading_layout);
+        
+        // Setup image adapter
+        imageAdapter = new ProductImageAdapter();
+        viewPagerImages.setAdapter(imageAdapter);
+        
+        // Setup page change listener for indicators and counter
+        viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                updateIndicators(position);
+                updateImageCounter(position);
+            }
+        });
+        
+        // Setup image click listener
+        imageAdapter.setOnImageClickListener((position, image) -> {
+            showFullscreenImages(position);
+        });
     }
 
     private void loadProductDetail(int productId) {
@@ -118,6 +149,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                     if (productResponse.getData() != null && !productResponse.getData().isEmpty()) {
                         Product product = productResponse.getData().get(0);
                         displayProductDetail(product);
+                        loadProductImages(productId);
                     } else {
                         Toast.makeText(ProductDetailActivity.this, "Không tìm thấy sản phẩm", Toast.LENGTH_SHORT).show();
                         finish();
@@ -138,23 +170,80 @@ public class ProductDetailActivity extends AppCompatActivity {
         });
     }
 
+    private void loadProductImages(int productId) {
+        apiService.getProductImages(productId).enqueue(new Callback<List<ProductImage>>() {
+            @Override
+            public void onResponse(Call<List<ProductImage>> call, Response<List<ProductImage>> response) {
+                if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                    productImages.clear();
+                    productImages.addAll(response.body());
+                    imageAdapter.setImages(productImages);
+                    setupIndicators();
+                    updateImageCounter(0);
+                } else {
+                    Log.w(TAG, "No product images found");
+                }
+            }
+            
+            @Override
+            public void onFailure(Call<List<ProductImage>> call, Throwable t) {
+                Log.e(TAG, "Failed to load product images", t);
+            }
+        });
+    }
+    
+    private void setupIndicators() {
+        layoutIndicators.removeAllViews();
+        
+        if (productImages.size() <= 1) {
+            layoutIndicators.setVisibility(View.GONE);
+            return;
+        }
+        
+        layoutIndicators.setVisibility(View.VISIBLE);
+        
+        for (int i = 0; i < productImages.size(); i++) {
+            View dot = new View(this);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    (int) (8 * getResources().getDisplayMetrics().density),
+                    (int) (8 * getResources().getDisplayMetrics().density)
+            );
+            params.setMargins(4, 0, 4, 0);
+            dot.setLayoutParams(params);
+            dot.setBackgroundResource(i == 0 ? R.drawable.indicator_dot_active : R.drawable.indicator_dot_inactive);
+            layoutIndicators.addView(dot);
+        }
+    }
+    
+    private void updateIndicators(int position) {
+        for (int i = 0; i < layoutIndicators.getChildCount(); i++) {
+            View dot = layoutIndicators.getChildAt(i);
+            dot.setBackgroundResource(i == position ? R.drawable.indicator_dot_active : R.drawable.indicator_dot_inactive);
+        }
+    }
+    
+    private void updateImageCounter(int position) {
+        if (productImages.isEmpty()) {
+            tvImageCounter.setVisibility(View.GONE);
+        } else {
+            tvImageCounter.setVisibility(View.VISIBLE);
+            tvImageCounter.setText((position + 1) + "/" + productImages.size());
+        }
+    }
+    
+    private void showFullscreenImages(int position) {
+        FullscreenImageDialog dialog = FullscreenImageDialog.newInstance(
+                new ArrayList<>(productImages), 
+                position
+        );
+        dialog.show(getSupportFragmentManager(), "fullscreen_image");
+    }
+    
     private void displayProductDetail(Product product) {
         tvProductName.setText(product.getProductName());
         tvPrice.setText(product.getFormattedPrice());
         tvBriefDescription.setText(product.getBriefDescription());
         tvFullDescription.setText(product.getFullDescription());
-        
-        // Load image
-        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
-            Glide.with(this)
-                .load(product.getImageUrl())
-                .placeholder(R.drawable.kibo_logo)
-                .error(R.drawable.kibo_logo)
-                .centerCrop()
-                .into(imgProduct);
-        } else {
-            imgProduct.setImageResource(R.drawable.kibo_logo);
-        }
         
         // Display specifications
         tvConnection.setText(product.getConnection() != null ? product.getConnection() : "N/A");
