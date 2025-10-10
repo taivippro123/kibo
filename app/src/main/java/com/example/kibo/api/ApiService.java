@@ -105,7 +105,7 @@ public interface ApiService {
         @Part java.util.List<okhttp3.MultipartBody.Part> ImageFiles
     );
 
-    // Update product (multipart/form-data) single image file key ImageFile
+    // Update product (multipart/form-data) - CHỈNH SỬA ĐỂ NHẬN NHIỀU ẢNH
     @Multipart
     @PUT("Products/{id}")
     Call<ApiResponse<String>> updateProduct(
@@ -128,7 +128,8 @@ public interface ApiService {
         @Part("Length") okhttp3.RequestBody length,
         @Part("Height") okhttp3.RequestBody height,
         @Part("Quantity") okhttp3.RequestBody quantity,
-        @Part okhttp3.MultipartBody.Part ImageFile
+        @Part java.util.List<okhttp3.MultipartBody.Part> ImageFiles,
+        @Part("PrimaryImageIndex") okhttp3.RequestBody primaryImageIndex
     );
     
     // Address endpoints
