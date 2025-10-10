@@ -4,6 +4,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
     private static final String BASE_URL = "https://kibo-cbpk.onrender.com/api/"; // Thay đổi URL này thành URL API thực tế của bạn
@@ -17,9 +18,15 @@ public class ApiClient {
             HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
             loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-            // Create OkHttp client
+            // Create OkHttp client with optimized timeouts for image upload
             OkHttpClient okHttpClient = new OkHttpClient.Builder()
                     .addInterceptor(loggingInterceptor)
+                    .connectTimeout(15, TimeUnit.SECONDS)      // 15s to connect
+                    .readTimeout(60, TimeUnit.SECONDS)         // 60s to read response  
+                    .writeTimeout(60, TimeUnit.SECONDS)        // 60s to send data (optimized for compressed images)
+                    .callTimeout(90, TimeUnit.SECONDS)         // 90s total call timeout
+                    .retryOnConnectionFailure(true)            // Retry on connection failure
+                    .pingInterval(30, TimeUnit.SECONDS)        // Keep connection alive
                     .build();
 
             // Create Retrofit instance
