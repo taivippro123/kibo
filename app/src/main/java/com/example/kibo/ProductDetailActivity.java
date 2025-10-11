@@ -339,7 +339,7 @@ public class ProductDetailActivity extends AppCompatActivity {
         tvConnection.setText(product.getConnection() != null ? product.getConnection() : "N/A");
         tvLayout.setText(product.getLayout() != null ? product.getLayout() : "N/A");
         tvKeycap.setText(product.getKeycap() != null ? product.getKeycap() : "N/A");
-        tvSwitch.setText(product.getSwitchType() != null ? product.getSwitchType() : "N/A");
+        tvSwitch.setText(product.getSwitchDetailType() != null ? product.getSwitchDetailType() : "N/A");
         tvBattery.setText(product.getBattery() != null ? product.getBattery() : "Không");
         tvOs.setText(product.getOs() != null ? product.getOs() : "N/A");
         tvLed.setText(product.getLed() != null ? product.getLed() : "Không");

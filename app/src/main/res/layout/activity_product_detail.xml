@@ -21,27 +21,6 @@
             android:layout_gravity="center" />
     </FrameLayout>
 
-    <!-- Back button container để đảm bảo click được -->
-    <FrameLayout
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_gravity="top|start"
-        android:elevation="16dp"
-        android:padding="16dp">
-        
-        <ImageButton
-            android:id="@+id/btn_back"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_back"
-            android:contentDescription="Quay lại"
-            android:clickable="true"
-            android:focusable="true"
-            app:tint="@color/red_dark" />
-    </FrameLayout>
-
     <!-- Nội dung chính (cuộn) -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view"
@@ -644,6 +623,22 @@
             </androidx.cardview.widget.CardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- Back button -->
+    <ImageButton
+        android:id="@+id/btn_back"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_back"
+        android:contentDescription="Quay lại"
+        android:elevation="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="16dp"
+        app:tint="@color/red_dark" />
 
     <!-- Bottom sticky bar: Total + Add Order (giữ nguyên phần này) -->
     <LinearLayout

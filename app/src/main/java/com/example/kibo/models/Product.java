@@ -37,6 +37,9 @@ public class Product {
     private String keycap;
 
     @SerializedName("switch")
+    private String switchDetailType;
+
+    @SerializedName("switch_type")
     private String switchType;
 
     @SerializedName("battery")
@@ -111,6 +114,10 @@ public class Product {
         return keycap;
     }
 
+    public String getSwitchDetailType() {
+        return switchDetailType;
+    }
+
     public String getSwitchType() {
         return switchType;
     }
@@ -179,6 +186,10 @@ public class Product {
 
     public void setKeycap(String keycap) {
         this.keycap = keycap;
+    }
+
+    public void setSwitchDetailType(String switchDetailType) {
+        this.switchDetailType = switchDetailType;
     }
 
     public void setSwitchType(String switchType) {
