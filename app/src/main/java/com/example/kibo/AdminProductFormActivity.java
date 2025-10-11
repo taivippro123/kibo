@@ -230,88 +230,7 @@ public class AdminProductFormActivity extends AppCompatActivity {
     }
 
 
-    // Helper method để tương thích với API 24 - TỐI ƯU HÓA
-    private byte[] readAllBytesCompat(java.io.InputStream inputStream) throws IOException {
-        java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
-        int nRead;
-        byte[] data = new byte[524288]; // Tăng buffer lên 512KB để đọc cực nhanh
-        
-        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
-        }
-        
-        return buffer.toByteArray();
-    }
     
-    // Helper method để đọc file tương thích với API 24
-    private byte[] readFileCompat(File file) throws IOException {
-        java.io.FileInputStream fis = new java.io.FileInputStream(file);
-        byte[] bytes = readAllBytesCompat(fis);
-        fis.close();
-        return bytes;
-    }
-    
-    // Compress ảnh để giảm file size
-    private byte[] compressImage(byte[] originalBytes) {
-        try {
-            android.graphics.Bitmap originalBitmap = android.graphics.BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.length);
-            
-            // Resize ảnh nếu quá lớn (max 1920x1080) - Giữ nguyên kích thước để đảm bảo độ nét
-            int maxWidth = 1920;
-            int maxHeight = 1080;
-            int width = originalBitmap.getWidth();
-            int height = originalBitmap.getHeight();
-            
-            if (width > maxWidth || height > maxHeight) {
-                float scale = Math.min((float) maxWidth / width, (float) maxHeight / height);
-                int newWidth = (int) (width * scale);
-                int newHeight = (int) (height * scale);
-                
-                originalBitmap = android.graphics.Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true);
-            }
-            
-            // Compress với quality 80% - Giữ nguyên quality để đảm bảo độ nét
-            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
-            originalBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, outputStream);
-            
-            return outputStream.toByteArray();
-        } catch (Exception e) {
-            // Nếu compress fail, return ảnh gốc
-            return originalBytes;
-        }
-    }
-    
-    // Download ảnh từ URL về file tạm
-    private File downloadImageToTemp(String imageUrl) {
-        try {
-            okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
-                    .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-                    .build();
-            
-            okhttp3.Request request = new okhttp3.Request.Builder()
-                    .url(imageUrl)
-                    .build();
-            
-            okhttp3.Response response = client.newCall(request).execute();
-            if (response.isSuccessful() && response.body() != null) {
-                // Tạo file tạm
-                File tempFile = File.createTempFile("temp_image_", ".jpg", getCacheDir());
-                
-                // Ghi dữ liệu vào file
-                java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile);
-                fos.write(response.body().bytes());
-                fos.close();
-                response.close();
-                
-                return tempFile;
-            }
-            response.close();
-        } catch (Exception e) {
-            // ignore download error
-        }
-        return null;
-    }
 
     private java.util.List<com.example.kibo.models.Category> categoryList = new java.util.ArrayList<>();
     private Integer selectedCategoryId = null;
@@ -395,64 +314,97 @@ public class AdminProductFormActivity extends AppCompatActivity {
     }
     
     private void sendCreateRequest(ProgressDialog progressDialog) {
-        ApiService api = ApiClient.getApiService();
-
-        RequestBody productname = RequestBody.create(MediaType.parse("text/plain"), etName.getText().toString().trim());
-        RequestBody brief = RequestBody.create(MediaType.parse("text/plain"), etBrief.getText().toString().trim());
-        RequestBody full = RequestBody.create(MediaType.parse("text/plain"), etFull.getText().toString().trim());
-        RequestBody price = RequestBody.create(MediaType.parse("text/plain"), etPrice.getText().toString().trim());
-        RequestBody categoryid = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(selectedCategoryId != null ? selectedCategoryId : 0));
-        RequestBody connection = RequestBody.create(MediaType.parse("text/plain"), etConnection.getText().toString().trim());
-        RequestBody layout = RequestBody.create(MediaType.parse("text/plain"), etLayout.getText().toString().trim());
-        RequestBody keycap = RequestBody.create(MediaType.parse("text/plain"), etKeycap.getText().toString().trim());
-        RequestBody switchType = RequestBody.create(MediaType.parse("text/plain"), etSwitch.getText().toString().trim());
-        RequestBody battery = RequestBody.create(MediaType.parse("text/plain"), etBattery.getText().toString().trim());
-        RequestBody os = RequestBody.create(MediaType.parse("text/plain"), etOs.getText().toString().trim());
-        RequestBody led = RequestBody.create(MediaType.parse("text/plain"), etLed.getText().toString().trim());
-        RequestBody screen = RequestBody.create(MediaType.parse("text/plain"), etScreen.getText().toString().trim());
-        RequestBody width = RequestBody.create(MediaType.parse("text/plain"), etWidth.getText().toString().trim());
-        RequestBody length = RequestBody.create(MediaType.parse("text/plain"), etLength.getText().toString().trim());
-        RequestBody height = RequestBody.create(MediaType.parse("text/plain"), etHeight.getText().toString().trim());
-        RequestBody quantity = RequestBody.create(MediaType.parse("text/plain"), etQuantity.getText().toString().trim().isEmpty()?"0":etQuantity.getText().toString().trim());
-
-        // Tạo danh sách ảnh với compression
-        List<MultipartBody.Part> images = new ArrayList<>();
-        for (int i = 0; i < selectedImageUris.size(); i++) {
-            try {
-                java.io.InputStream is = getContentResolver().openInputStream(selectedImageUris.get(i));
-                byte[] bytes = readAllBytesCompat(is);
-                is.close();
-                
-                // Compress ảnh để giảm file size
-                byte[] compressedBytes = compressImage(bytes);
-                
-                okhttp3.RequestBody rb = okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), compressedBytes);
-                MultipartBody.Part part = MultipartBody.Part.createFormData("ImageFiles", "image_" + i + ".jpg", rb);
-                images.add(part);
-            } catch (Exception e) {
-                // ignore image read error
-            }
-        }
-
-        api.createProduct(productname, brief, full, price, categoryid, connection, layout, keycap, switchType, battery, os, led, screen, width, length, height, quantity, images)
-                .enqueue(new Callback<ApiResponse<String>>() {
-                    @Override
-                    public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
-                        progressDialog.dismiss();
-                        if (response.isSuccessful()) {
-                            Toast.makeText(AdminProductFormActivity.this, "Tạo sản phẩm thành công", Toast.LENGTH_SHORT).show();
-                            finish();
-                        } else {
-                            Toast.makeText(AdminProductFormActivity.this, "Tạo sản phẩm thất bại", Toast.LENGTH_SHORT).show();
+        // Xử lý ảnh trong background thread để tránh block UI
+        new Thread(() -> {
+            List<MultipartBody.Part> images = new ArrayList<>();
+            
+            // Xử lý ảnh song song với ExecutorService - Đồng nhất với UPDATE
+            java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(8);
+            java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(selectedImageUris.size());
+            
+            for (int i = 0; i < selectedImageUris.size(); i++) {
+                final int index = i;
+                executor.submit(() -> {
+                    try {
+                        java.io.InputStream is = getContentResolver().openInputStream(selectedImageUris.get(index));
+                        byte[] bytes = is.readAllBytes(); // ← Chỉ thay đổi chỗ này
+                        is.close();
+                        
+                        okhttp3.RequestBody rb = okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/*"), bytes);
+                        MultipartBody.Part part = MultipartBody.Part.createFormData("ImageFiles", "image_" + index + ".jpg", rb);
+                        
+                        synchronized (images) {
+                            images.add(part);
                         }
-                    }
-
-                    @Override
-                    public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                        progressDialog.dismiss();
-                        Toast.makeText(AdminProductFormActivity.this, "Lỗi mạng khi tạo sản phẩm: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                    } catch (Exception e) {
+                        // ignore error
+                    } finally {
+                        latch.countDown();
                     }
                 });
+            }
+            
+            try {
+                // Đợi tất cả ảnh được xử lý xong
+                latch.await();
+                executor.shutdown();
+                
+                // Chạy API call trên main thread
+                runOnUiThread(() -> {
+                    if (images.isEmpty()) {
+                        progressDialog.dismiss();
+                        Toast.makeText(AdminProductFormActivity.this, "Không thể xử lý ảnh", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    ApiService api = ApiClient.getApiService();
+
+                    RequestBody productname = RequestBody.create(MediaType.parse("text/plain"), etName.getText().toString().trim());
+                    RequestBody brief = RequestBody.create(MediaType.parse("text/plain"), etBrief.getText().toString().trim());
+                    RequestBody full = RequestBody.create(MediaType.parse("text/plain"), etFull.getText().toString().trim());
+                    RequestBody price = RequestBody.create(MediaType.parse("text/plain"), etPrice.getText().toString().trim());
+                    RequestBody categoryid = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(selectedCategoryId != null ? selectedCategoryId : 0));
+                    RequestBody connection = RequestBody.create(MediaType.parse("text/plain"), etConnection.getText().toString().trim());
+                    RequestBody layout = RequestBody.create(MediaType.parse("text/plain"), etLayout.getText().toString().trim());
+                    RequestBody keycap = RequestBody.create(MediaType.parse("text/plain"), etKeycap.getText().toString().trim());
+                    RequestBody switchType = RequestBody.create(MediaType.parse("text/plain"), etSwitch.getText().toString().trim());
+                    RequestBody battery = RequestBody.create(MediaType.parse("text/plain"), etBattery.getText().toString().trim());
+                    RequestBody os = RequestBody.create(MediaType.parse("text/plain"), etOs.getText().toString().trim());
+                    RequestBody led = RequestBody.create(MediaType.parse("text/plain"), etLed.getText().toString().trim());
+                    RequestBody screen = RequestBody.create(MediaType.parse("text/plain"), etScreen.getText().toString().trim());
+                    RequestBody width = RequestBody.create(MediaType.parse("text/plain"), etWidth.getText().toString().trim());
+                    RequestBody length = RequestBody.create(MediaType.parse("text/plain"), etLength.getText().toString().trim());
+                    RequestBody height = RequestBody.create(MediaType.parse("text/plain"), etHeight.getText().toString().trim());
+                    RequestBody quantity = RequestBody.create(MediaType.parse("text/plain"), etQuantity.getText().toString().trim().isEmpty()?"0":etQuantity.getText().toString().trim());
+
+                    api.createProduct(productname, brief, full, price, categoryid, connection, layout, keycap, switchType, battery, os, led, screen, width, length, height, quantity, images)
+                            .enqueue(new Callback<ApiResponse<String>>() {
+                                @Override
+                                public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                                    progressDialog.dismiss();
+                                    if (response.isSuccessful()) {
+                                        Toast.makeText(AdminProductFormActivity.this, "Tạo sản phẩm thành công", Toast.LENGTH_SHORT).show();
+                                        finish();
+                                    } else {
+                                        Toast.makeText(AdminProductFormActivity.this, "Tạo sản phẩm thất bại", Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                                    progressDialog.dismiss();
+                                    Toast.makeText(AdminProductFormActivity.this, "Lỗi mạng khi tạo sản phẩm: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            });
+                });
+                
+            } catch (InterruptedException e) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(AdminProductFormActivity.this, "Xử lý ảnh bị gián đoạn", Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
     }
 
     private void updateProduct() {
@@ -465,98 +417,99 @@ public class AdminProductFormActivity extends AppCompatActivity {
     }
     
     private void sendUpdateRequest(ProgressDialog progressDialog) {
-        // Chạy việc download ảnh cũ trong background thread
+        // Chạy việc xử lý ảnh trong background thread
         new Thread(() -> {
             List<MultipartBody.Part> imageFiles = new ArrayList<>();
             
-            // Bước 1: Download ảnh cũ còn lại
-            for (int i = 0; i < currentProductImages.size(); i++) {
-                ProductImage productImage = currentProductImages.get(i);
-                try {
-                    File tempFile = downloadImageToTemp(productImage.getImageUrl());
-                    if (tempFile != null) {
-                        byte[] bytes = readFileCompat(tempFile);
-                        byte[] compressedBytes = compressImage(bytes);
-                        
-                        okhttp3.RequestBody rb = okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), compressedBytes);
-                        MultipartBody.Part part = MultipartBody.Part.createFormData("ImageFiles", "existing_image_" + i + ".jpg", rb);
-                        imageFiles.add(part);
-                        
-                        tempFile.delete();
-                    }
-                } catch (Exception e) {
-                    // ignore error
-                }
-            }
+            // Xử lý ảnh song song với ExecutorService
+            java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(8);
+            java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(selectedImageUris.size());
             
-            // Bước 2: Xử lý ảnh mới
             for (int i = 0; i < selectedImageUris.size(); i++) {
-                try {
-                    java.io.InputStream is = getContentResolver().openInputStream(selectedImageUris.get(i));
-                    byte[] bytes = readAllBytesCompat(is);
-                    is.close();
-                    
-                    byte[] compressedBytes = compressImage(bytes);
-                    
-                    okhttp3.RequestBody rb = okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/jpeg"), compressedBytes);
-                    MultipartBody.Part part = MultipartBody.Part.createFormData("ImageFiles", "new_image_" + i + ".jpg", rb);
-                    imageFiles.add(part);
-                } catch (Exception e) {
-                    // ignore error
-                }
+                final int index = i;
+                executor.submit(() -> {
+                    try {
+                        java.io.InputStream is = getContentResolver().openInputStream(selectedImageUris.get(index));
+                        byte[] bytes = is.readAllBytes(); // ← Chỉ thay đổi chỗ này
+                        is.close();
+                        
+                        okhttp3.RequestBody rb = okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/*"), bytes);
+                        MultipartBody.Part part = MultipartBody.Part.createFormData("ImageFiles", "new_image_" + index + ".jpg", rb);
+                        
+                        synchronized (imageFiles) {
+                            imageFiles.add(part);
+                        }
+                    } catch (Exception e) {
+                        // ignore error
+                    } finally {
+                        latch.countDown();
+                    }
+                });
             }
             
-            // Chạy API call trên main thread
-            runOnUiThread(() -> {
-                if (imageFiles.isEmpty()) {
-                    progressDialog.dismiss();
-                    Toast.makeText(this, "Vui lòng chọn ít nhất 1 ảnh để cập nhật", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+            try {
+                // Đợi tất cả ảnh được xử lý xong
+                latch.await();
+                executor.shutdown();
                 
-                ApiService api = ApiClient.getApiService();
-                
-                RequestBody productid = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(productId));
-                RequestBody productname = RequestBody.create(MediaType.parse("text/plain"), etName.getText().toString().trim());
-                RequestBody brief = RequestBody.create(MediaType.parse("text/plain"), etBrief.getText().toString().trim());
-                RequestBody full = RequestBody.create(MediaType.parse("text/plain"), etFull.getText().toString().trim());
-                RequestBody price = RequestBody.create(MediaType.parse("text/plain"), etPrice.getText().toString().trim());
-                RequestBody categoryid = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(selectedCategoryId != null ? selectedCategoryId : 0));
-                RequestBody connection = RequestBody.create(MediaType.parse("text/plain"), etConnection.getText().toString().trim());
-                RequestBody layout = RequestBody.create(MediaType.parse("text/plain"), etLayout.getText().toString().trim());
-                RequestBody keycap = RequestBody.create(MediaType.parse("text/plain"), etKeycap.getText().toString().trim());
-                RequestBody switchType = RequestBody.create(MediaType.parse("text/plain"), etSwitch.getText().toString().trim());
-                RequestBody battery = RequestBody.create(MediaType.parse("text/plain"), etBattery.getText().toString().trim());
-                RequestBody os = RequestBody.create(MediaType.parse("text/plain"), etOs.getText().toString().trim());
-                RequestBody led = RequestBody.create(MediaType.parse("text/plain"), etLed.getText().toString().trim());
-                RequestBody screen = RequestBody.create(MediaType.parse("text/plain"), etScreen.getText().toString().trim());
-                RequestBody width = RequestBody.create(MediaType.parse("text/plain"), etWidth.getText().toString().trim());
-                RequestBody length = RequestBody.create(MediaType.parse("text/plain"), etLength.getText().toString().trim());
-                RequestBody height = RequestBody.create(MediaType.parse("text/plain"), etHeight.getText().toString().trim());
-                RequestBody quantity = RequestBody.create(MediaType.parse("text/plain"), etQuantity.getText().toString().trim().isEmpty()?"0":etQuantity.getText().toString().trim());
-                RequestBody primaryImageIndex = RequestBody.create(MediaType.parse("text/plain"), "0");
+                // Chạy API call trên main thread
+                runOnUiThread(() -> {
+                    if (imageFiles.isEmpty()) {
+                        progressDialog.dismiss();
+                        Toast.makeText(AdminProductFormActivity.this, "Vui lòng chọn ít nhất 1 ảnh để cập nhật", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    ApiService api = ApiClient.getApiService();
+                    
+                    RequestBody productid = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(productId));
+                    RequestBody productname = RequestBody.create(MediaType.parse("text/plain"), etName.getText().toString().trim());
+                    RequestBody brief = RequestBody.create(MediaType.parse("text/plain"), etBrief.getText().toString().trim());
+                    RequestBody full = RequestBody.create(MediaType.parse("text/plain"), etFull.getText().toString().trim());
+                    RequestBody price = RequestBody.create(MediaType.parse("text/plain"), etPrice.getText().toString().trim());
+                    RequestBody categoryid = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(selectedCategoryId != null ? selectedCategoryId : 0));
+                    RequestBody connection = RequestBody.create(MediaType.parse("text/plain"), etConnection.getText().toString().trim());
+                    RequestBody layout = RequestBody.create(MediaType.parse("text/plain"), etLayout.getText().toString().trim());
+                    RequestBody keycap = RequestBody.create(MediaType.parse("text/plain"), etKeycap.getText().toString().trim());
+                    RequestBody switchType = RequestBody.create(MediaType.parse("text/plain"), etSwitch.getText().toString().trim());
+                    RequestBody battery = RequestBody.create(MediaType.parse("text/plain"), etBattery.getText().toString().trim());
+                    RequestBody os = RequestBody.create(MediaType.parse("text/plain"), etOs.getText().toString().trim());
+                    RequestBody led = RequestBody.create(MediaType.parse("text/plain"), etLed.getText().toString().trim());
+                    RequestBody screen = RequestBody.create(MediaType.parse("text/plain"), etScreen.getText().toString().trim());
+                    RequestBody width = RequestBody.create(MediaType.parse("text/plain"), etWidth.getText().toString().trim());
+                    RequestBody length = RequestBody.create(MediaType.parse("text/plain"), etLength.getText().toString().trim());
+                    RequestBody height = RequestBody.create(MediaType.parse("text/plain"), etHeight.getText().toString().trim());
+                    RequestBody quantity = RequestBody.create(MediaType.parse("text/plain"), etQuantity.getText().toString().trim().isEmpty()?"0":etQuantity.getText().toString().trim());
+                    RequestBody primaryImageIndex = RequestBody.create(MediaType.parse("text/plain"), "0");
 
-                api.updateProduct(productId, productid, productname, brief, full, price, categoryid, 
-                                 connection, layout, keycap, switchType, battery, os, led, screen, 
-                                 width, length, height, quantity, imageFiles, primaryImageIndex)
-                        .enqueue(new Callback<ApiResponse<String>>() {
-                            @Override
-                            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
-                                progressDialog.dismiss();
-                                if (response.isSuccessful()) {
-                                    Toast.makeText(AdminProductFormActivity.this, "Cập nhật sản phẩm thành công", Toast.LENGTH_SHORT).show();
-                                    finish();
-                                } else {
-                                    Toast.makeText(AdminProductFormActivity.this, "Cập nhật thất bại", Toast.LENGTH_SHORT).show();
+                    api.updateProduct(productId, productid, productname, brief, full, price, categoryid, 
+                                     connection, layout, keycap, switchType, battery, os, led, screen, 
+                                     width, length, height, quantity, imageFiles, primaryImageIndex)
+                            .enqueue(new Callback<ApiResponse<String>>() {
+                                @Override
+                                public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                                    progressDialog.dismiss();
+                                    if (response.isSuccessful()) {
+                                        Toast.makeText(AdminProductFormActivity.this, "Cập nhật sản phẩm thành công", Toast.LENGTH_SHORT).show();
+                                        finish();
+                                    } else {
+                                        Toast.makeText(AdminProductFormActivity.this, "Cập nhật thất bại", Toast.LENGTH_SHORT).show();
+                                    }
                                 }
-                            }
-                            @Override
-                            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                                progressDialog.dismiss();
-                                Toast.makeText(AdminProductFormActivity.this, "Lỗi mạng khi cập nhật: " + t.getMessage(), Toast.LENGTH_LONG).show();
-                            }
-                        });
-            });
+                                @Override
+                                public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                                    progressDialog.dismiss();
+                                    Toast.makeText(AdminProductFormActivity.this, "Lỗi mạng khi cập nhật: " + t.getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            });
+                });
+                
+            } catch (InterruptedException e) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(AdminProductFormActivity.this, "Xử lý ảnh bị gián đoạn", Toast.LENGTH_SHORT).show();
+                });
+            }
         }).start();
     }
 

@@ -99,6 +99,12 @@
             android:exported="false"
             android:label="Quản lý sản phẩm"
             android:theme="@style/Theme.Kibo" />
+
+        <activity
+            android:name=".AdminManagementActivity"
+            android:exported="false"
+            android:label="Quản lý Admin"
+            android:theme="@style/Theme.Kibo" />
     </application>
 
 </manifest>
