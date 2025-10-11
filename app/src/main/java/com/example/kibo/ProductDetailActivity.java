@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -33,13 +34,13 @@ import java.util.List;
 public class ProductDetailActivity extends AppCompatActivity {
     private static final String TAG = "ProductDetailActivity";
     public static final String EXTRA_PRODUCT_ID = "product_id";
-    
+
     private ViewPager2 viewPagerImages;
     private LinearLayout layoutIndicators;
     private TextView tvImageCounter;
     private ProductImageAdapter imageAdapter;
     private List<ProductImage> productImages = new ArrayList<>();
-    
+
     private TextView tvProductName;
     private TextView tvPrice;
     private TextView tvBriefDescription;
@@ -52,11 +53,21 @@ public class ProductDetailActivity extends AppCompatActivity {
     private TextView tvOs;
     private TextView tvLed;
     private TextView tvScreen;
+    private TextView tvCategoryName;
+    private TextView tvDimensions;
     private ImageButton btnBack;
     private LinearLayout btnChat;
     private Button btnBuy;
-    private View loadingLayout;
-    
+    private FrameLayout loadingLayout;
+
+    // Quantity controls
+    private Button btnDecrease;
+    private Button btnIncrease;
+    private TextView tvQuantity;
+    private TextView tvTotalPrice;
+    private int currentQuantity = 1;
+    private double unitPrice = 0.0;
+
     private ApiService apiService;
     private SessionManager sessionManager;
     private int currentProductId;
@@ -69,11 +80,11 @@ public class ProductDetailActivity extends AppCompatActivity {
         // Initialize services
         apiService = ApiClient.getApiService();
         sessionManager = new SessionManager(this);
-        
+
         initViews();
-        
+
         currentProductId = getIntent().getIntExtra(EXTRA_PRODUCT_ID, -1);
-        
+
         if (currentProductId != -1) {
             loadProductDetail(currentProductId);
         } else {
@@ -82,12 +93,12 @@ public class ProductDetailActivity extends AppCompatActivity {
         }
 
         btnBack.setOnClickListener(v -> finish());
-        
+
         btnChat.setOnClickListener(v -> {
             Toast.makeText(this, "Mở chat với shop", Toast.LENGTH_SHORT).show();
             // TODO: Implement chat logic
         });
-        
+
         btnBuy.setOnClickListener(v -> {
             buyNow();
         });
@@ -109,15 +120,26 @@ public class ProductDetailActivity extends AppCompatActivity {
         tvOs = findViewById(R.id.tv_os);
         tvLed = findViewById(R.id.tv_led);
         tvScreen = findViewById(R.id.tv_screen);
+        tvCategoryName = findViewById(R.id.tv_category_name);
+        tvDimensions = findViewById(R.id.tv_dimensions);
         btnBack = findViewById(R.id.btn_back);
         btnChat = findViewById(R.id.btn_chat);
         btnBuy = findViewById(R.id.btn_buy);
         loadingLayout = findViewById(R.id.loading_layout);
-        
+
+        // Initialize quantity controls
+        btnDecrease = findViewById(R.id.button_decrease);
+        btnIncrease = findViewById(R.id.button_increase);
+        tvQuantity = findViewById(R.id.text_quantity);
+        tvTotalPrice = findViewById(R.id.tv_total_price);
+
+        // Setup quantity button listeners
+        setupQuantityControls();
+
         // Setup image adapter
         imageAdapter = new ProductImageAdapter();
         viewPagerImages.setAdapter(imageAdapter);
-        
+
         // Setup page change listener for indicators and counter
         viewPagerImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
@@ -127,31 +149,89 @@ public class ProductDetailActivity extends AppCompatActivity {
                 updateImageCounter(position);
             }
         });
-        
+
         // Setup image click listener
         imageAdapter.setOnImageClickListener((position, image) -> {
             showFullscreenImages(position);
         });
     }
 
+    private void setupQuantityControls() {
+        btnDecrease.setOnClickListener(v -> {
+            if (currentQuantity > 1) {
+                currentQuantity--;
+                updateQuantityDisplay();
+                updateTotalPrice();
+            }
+        });
+
+        btnIncrease.setOnClickListener(v -> {
+            currentQuantity++;
+            updateQuantityDisplay();
+            updateTotalPrice();
+        });
+    }
+
+    private void updateQuantityDisplay() {
+        tvQuantity.setText(String.valueOf(currentQuantity));
+    }
+
+    private void updateTotalPrice() {
+        if (unitPrice > 0) {
+            double total = unitPrice * currentQuantity;
+            String formattedPrice = String.format("%,.0fđ", total);
+            tvTotalPrice.setText(formattedPrice);
+        }
+    }
+
     private void loadProductDetail(int productId) {
         Log.d(TAG, "Loading product detail for ID: " + productId);
         showLoading(true);
-        
+
+        // Try new endpoint first
+        ApiClient.getApiService().getProductDetail(productId).enqueue(new Callback<Product>() {
+            @Override
+            public void onResponse(Call<Product> call, Response<Product> response) {
+                showLoading(false);
+
+                if (response.isSuccessful() && response.body() != null) {
+                    Product product = response.body();
+                    displayProductDetail(product);
+                    loadProductImages(productId);
+                } else {
+                    // Fallback to old endpoint
+                    loadProductDetailFallback(productId);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Product> call, Throwable t) {
+                Log.e(TAG, "Failed to load product detail with new endpoint", t);
+                // Fallback to old endpoint
+                loadProductDetailFallback(productId);
+            }
+        });
+    }
+
+    private void loadProductDetailFallback(int productId) {
+        Log.d(TAG, "Using fallback endpoint for product ID: " + productId);
+        showLoading(true);
+
         ApiClient.getApiService().getProductById(productId).enqueue(new Callback<ProductResponse>() {
             @Override
             public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
                 showLoading(false);
-                
+
                 if (response.isSuccessful() && response.body() != null) {
                     ProductResponse productResponse = response.body();
-                    
+
                     if (productResponse.getData() != null && !productResponse.getData().isEmpty()) {
                         Product product = productResponse.getData().get(0);
                         displayProductDetail(product);
                         loadProductImages(productId);
                     } else {
-                        Toast.makeText(ProductDetailActivity.this, "Không tìm thấy sản phẩm", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ProductDetailActivity.this, "Không tìm thấy sản phẩm", Toast.LENGTH_SHORT)
+                                .show();
                         finish();
                     }
                 } else {
@@ -184,44 +264,44 @@ public class ProductDetailActivity extends AppCompatActivity {
                     Log.w(TAG, "No product images found");
                 }
             }
-            
+
             @Override
             public void onFailure(Call<List<ProductImage>> call, Throwable t) {
                 Log.e(TAG, "Failed to load product images", t);
             }
         });
     }
-    
+
     private void setupIndicators() {
         layoutIndicators.removeAllViews();
-        
+
         if (productImages.size() <= 1) {
             layoutIndicators.setVisibility(View.GONE);
             return;
         }
-        
+
         layoutIndicators.setVisibility(View.VISIBLE);
-        
+
         for (int i = 0; i < productImages.size(); i++) {
             View dot = new View(this);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     (int) (8 * getResources().getDisplayMetrics().density),
-                    (int) (8 * getResources().getDisplayMetrics().density)
-            );
+                    (int) (8 * getResources().getDisplayMetrics().density));
             params.setMargins(4, 0, 4, 0);
             dot.setLayoutParams(params);
             dot.setBackgroundResource(i == 0 ? R.drawable.indicator_dot_active : R.drawable.indicator_dot_inactive);
             layoutIndicators.addView(dot);
         }
     }
-    
+
     private void updateIndicators(int position) {
         for (int i = 0; i < layoutIndicators.getChildCount(); i++) {
             View dot = layoutIndicators.getChildAt(i);
-            dot.setBackgroundResource(i == position ? R.drawable.indicator_dot_active : R.drawable.indicator_dot_inactive);
+            dot.setBackgroundResource(
+                    i == position ? R.drawable.indicator_dot_active : R.drawable.indicator_dot_inactive);
         }
     }
-    
+
     private void updateImageCounter(int position) {
         if (productImages.isEmpty()) {
             tvImageCounter.setVisibility(View.GONE);
@@ -230,21 +310,31 @@ public class ProductDetailActivity extends AppCompatActivity {
             tvImageCounter.setText((position + 1) + "/" + productImages.size());
         }
     }
-    
+
     private void showFullscreenImages(int position) {
         FullscreenImageDialog dialog = FullscreenImageDialog.newInstance(
-                new ArrayList<>(productImages), 
-                position
-        );
+                new ArrayList<>(productImages),
+                position);
         dialog.show(getSupportFragmentManager(), "fullscreen_image");
     }
-    
+
     private void displayProductDetail(Product product) {
         tvProductName.setText(product.getProductName());
         tvPrice.setText(product.getFormattedPrice());
         tvBriefDescription.setText(product.getBriefDescription());
         tvFullDescription.setText(product.getFullDescription());
-        
+
+        // Store unit price for quantity calculations
+        unitPrice = product.getPrice();
+
+        // Initialize quantity and total price
+        currentQuantity = 1;
+        updateQuantityDisplay();
+        updateTotalPrice();
+
+        // Display category name
+        tvCategoryName.setText(product.getCategoryName() != null ? product.getCategoryName() : "N/A");
+
         // Display specifications
         tvConnection.setText(product.getConnection() != null ? product.getConnection() : "N/A");
         tvLayout.setText(product.getLayout() != null ? product.getLayout() : "N/A");
@@ -254,27 +344,41 @@ public class ProductDetailActivity extends AppCompatActivity {
         tvOs.setText(product.getOs() != null ? product.getOs() : "N/A");
         tvLed.setText(product.getLed() != null ? product.getLed() : "Không");
         tvScreen.setText(product.getScreen() != null ? product.getScreen() : "Không");
+
+        // Display dimensions in format: length x width x height
+        String dimensions = formatDimensions(product.getLength(), product.getWidth(), product.getHeight());
+        tvDimensions.setText(dimensions);
+    }
+
+    private String formatDimensions(int length, int width, int height) {
+        if (length > 0 && width > 0 && height > 0) {
+            return String.format("%d x %d x %d cm", length, width, height);
+        } else if (length > 0 && width > 0) {
+            return String.format("%d x %d cm", length, width);
+        } else {
+            return "N/A";
+        }
     }
 
     private void showLoading(boolean show) {
         loadingLayout.setVisibility(show ? View.VISIBLE : View.GONE);
     }
-    
+
     private void buyNow() {
         // Check if user is logged in
         if (!sessionManager.isLoggedIn()) {
             Toast.makeText(this, "Vui lòng đăng nhập để mua hàng", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         // Disable button and show loading
         btnBuy.setEnabled(false);
         btnBuy.setText("Đang xử lý...");
         showLoading(true);
-        
+
         // Get user ID
         int userId = sessionManager.getUserId();
-        
+
         // Step 1: Create cart
         CartRequest cartRequest = new CartRequest(userId, 0); // status = 0 (pending)
         Call<Cart> createCartCall = apiService.createCart(cartRequest);
@@ -284,12 +388,12 @@ public class ProductDetailActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     Cart cart = response.body();
                     int cartId = cart.getCartId();
-                    
+
                     Log.d(TAG, "Cart created successfully with ID: " + cartId);
-                    
+
                     // Save cart ID to SessionManager
                     sessionManager.setActiveCartId(cartId);
-                    
+
                     // Step 2: Add product to cart
                     addProductToCart(cartId);
                 } else {
@@ -299,7 +403,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                     Toast.makeText(ProductDetailActivity.this, "Không thể tạo giỏ hàng", Toast.LENGTH_SHORT).show();
                 }
             }
-            
+
             @Override
             public void onFailure(Call<Cart> call, Throwable t) {
                 showLoading(false);
@@ -309,9 +413,9 @@ public class ProductDetailActivity extends AppCompatActivity {
             }
         });
     }
-    
+
     private void addProductToCart(int cartId) {
-        CartItemRequest cartItemRequest = new CartItemRequest(cartId, currentProductId, 1);
+        CartItemRequest cartItemRequest = new CartItemRequest(cartId, currentProductId, currentQuantity);
         Call<ApiResponse<String>> addToCartCall = apiService.addToCart(cartItemRequest);
         addToCartCall.enqueue(new Callback<ApiResponse<String>>() {
             @Override
@@ -319,16 +423,17 @@ public class ProductDetailActivity extends AppCompatActivity {
                 showLoading(false);
                 btnBuy.setEnabled(true);
                 btnBuy.setText("MUA NGAY");
-                
+
                 if (response.isSuccessful()) {
                     Toast.makeText(ProductDetailActivity.this, "Đã thêm vào giỏ hàng", Toast.LENGTH_SHORT).show();
                     // Navigate to cart fragment ngay lập tức
                     navigateToCart();
                 } else {
-                    Toast.makeText(ProductDetailActivity.this, "Không thể thêm vào giỏ hàng", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ProductDetailActivity.this, "Không thể thêm vào giỏ hàng", Toast.LENGTH_SHORT)
+                            .show();
                 }
             }
-            
+
             @Override
             public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
                 showLoading(false);
@@ -338,7 +443,7 @@ public class ProductDetailActivity extends AppCompatActivity {
             }
         });
     }
-    
+
     private void navigateToCart() {
         // Navigate to MainActivity with cart tab selected
         Intent intent = new Intent(this, MainActivity.class);
@@ -348,4 +453,3 @@ public class ProductDetailActivity extends AppCompatActivity {
         // Don't finish here; allow back to product details if needed
     }
 }
-
