@@ -132,6 +132,10 @@ public interface ApiService {
         @Part("PrimaryImageIndex") okhttp3.RequestBody primaryImageIndex
     );
     
+    // Delete product
+    @HTTP(method = "DELETE", path = "Products/{id}", hasBody = false)
+    Call<ApiResponse<String>> deleteProduct(@Path("id") int productId);
+    
     // Address endpoints
     @GET("Address/provinces")
     Call<List<Province>> getProvinces();

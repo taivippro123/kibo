@@ -13,6 +13,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.kibo.R;
@@ -61,7 +62,7 @@ public class AdminProductsFragment extends Fragment {
         categoryList = new ArrayList<>();
 
         // Khởi tạo adapter với category list
-        adapter = new AdminProductAdapter(productList, categoryList, this::onEditClick, this::onDeleteClick);
+        adapter = new AdminProductAdapter(productList, categoryList, this::onEditClick, this::onDeleteClick, this::onProductNameClick);
         rvProducts.setAdapter(adapter);
 
         // Load categories trước, sau đó load products
@@ -98,9 +99,51 @@ public class AdminProductsFragment extends Fragment {
     }
 
     private void onDeleteClick(Product product) {
-        // TODO: Hiển thị dialog xác nhận xóa
-        // showDeleteConfirmDialog(product);
-        Toast.makeText(getContext(), "Chức năng xóa chưa được implement", Toast.LENGTH_SHORT).show();
+        showDeleteConfirmDialog(product);
+    }
+    
+    private void showDeleteConfirmDialog(Product product) {
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Xóa sản phẩm")
+                .setMessage("Bạn có chắc muốn xóa sản phẩm '" + product.getProductName() + "'?\n\nHành động này không thể hoàn tác!")
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xóa", (dialog, which) -> deleteProduct(product))
+                .show();
+    }
+    
+    private void deleteProduct(Product product) {
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(getContext());
+        progressDialog.setMessage("Đang xóa sản phẩm...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
+        ApiService apiService = ApiClient.getApiService();
+        apiService.deleteProduct(product.getProductId()).enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
+            @Override
+            public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
+                progressDialog.dismiss();
+                if (response.isSuccessful()) {
+                    Toast.makeText(getContext(), "Xóa sản phẩm thành công", Toast.LENGTH_SHORT).show();
+                    // Refresh danh sách sản phẩm
+                    loadProductsFromApi();
+                } else {
+                    Toast.makeText(getContext(), "Xóa sản phẩm thất bại", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
+                progressDialog.dismiss();
+                Toast.makeText(getContext(), "Lỗi mạng khi xóa sản phẩm: " + t.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void onProductNameClick(Product product) {
+        // Hiển thị dialog chi tiết sản phẩm
+        com.example.kibo.dialogs.ProductDetailDialog dialog = 
+            com.example.kibo.dialogs.ProductDetailDialog.newInstance(product.getProductId());
+        dialog.show(getChildFragmentManager(), "ProductDetailDialog");
     }
 
     private void filterProducts(String query) {
