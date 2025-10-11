@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="12dp">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="700dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="16dp">
+
+            <!-- Header với tên category và nút đóng -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="20dp">
+
+                <TextView
+                    android:id="@+id/tv_category_name"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Sản phẩm - Fuhlen"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/black" />
+
+                <ImageButton
+                    android:id="@+id/btn_close"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Đóng" />
+
+            </LinearLayout>
+
+            <!-- RecyclerView cho danh sách sản phẩm -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_products"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="600dp"
+                android:minHeight="400dp"
+                android:nestedScrollingEnabled="true"
+                android:clipToPadding="false"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="8dp" />
+
+            <!-- Loading indicator -->
+            <ProgressBar
+                android:id="@+id/progress_loading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginVertical="32dp"
+                android:visibility="gone" />
+
+            <!-- Empty state -->
+            <LinearLayout
+                android:id="@+id/layout_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="32dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Không có sản phẩm nào trong danh mục này"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</androidx.cardview.widget.CardView>

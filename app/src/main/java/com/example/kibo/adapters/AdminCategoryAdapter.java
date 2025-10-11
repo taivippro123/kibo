@@ -18,6 +18,7 @@ public class AdminCategoryAdapter extends RecyclerView.Adapter<AdminCategoryAdap
     private java.util.Map<Integer, Integer> productCountMap; // categoryId -> product count
     private OnEditClickListener onEditClickListener;
     private OnDeleteClickListener onDeleteClickListener;
+    private OnCategoryClickListener onCategoryClickListener;
     
     public interface OnEditClickListener {
         void onEditClick(Category category);
@@ -27,6 +28,10 @@ public class AdminCategoryAdapter extends RecyclerView.Adapter<AdminCategoryAdap
         void onDeleteClick(Category category);
     }
     
+    public interface OnCategoryClickListener {
+        void onCategoryClick(Category category);
+    }
+    
     public AdminCategoryAdapter(List<Category> categoryList, 
                                OnEditClickListener onEditClickListener,
                                OnDeleteClickListener onDeleteClickListener) {
@@ -34,6 +39,10 @@ public class AdminCategoryAdapter extends RecyclerView.Adapter<AdminCategoryAdap
         this.productCountMap = new java.util.HashMap<>();
         this.onEditClickListener = onEditClickListener;
         this.onDeleteClickListener = onDeleteClickListener;
+    }
+    
+    public void setOnCategoryClickListener(OnCategoryClickListener listener) {
+        this.onCategoryClickListener = listener;
     }
     
     @NonNull
@@ -81,6 +90,16 @@ public class AdminCategoryAdapter extends RecyclerView.Adapter<AdminCategoryAdap
             tvCategoryId = itemView.findViewById(R.id.tv_category_id);
             btnEdit = itemView.findViewById(R.id.btn_edit_category);
             btnDelete = itemView.findViewById(R.id.btn_delete_category);
+            
+            // Thêm click listener cho tên danh mục
+            tvCategoryName.setOnClickListener(v -> {
+                if (onCategoryClickListener != null) {
+                    int position = getAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION) {
+                        onCategoryClickListener.onCategoryClick(categoryList.get(position));
+                    }
+                }
+            });
         }
         
         public void bind(Category category) {

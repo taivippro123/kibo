@@ -105,6 +105,20 @@ public class AdminManagementActivity extends AppCompatActivity {
         return false;
     }
     
+    // Method để nhảy qua tab "Sản phẩm" và hiện tên sản phẩm trong ô tìm kiếm
+    public void navigateToProductsWithSearch(String productName) {
+        // Chuyển sang tab "Sản phẩm" (position 1)
+        viewPager.setCurrentItem(1);
+        
+        // Delay để đảm bảo fragment đã được tạo và sẵn sàng
+        viewPager.postDelayed(() -> {
+            androidx.fragment.app.Fragment productsFragment = adapter.getFragment(1);
+            if (productsFragment instanceof com.example.kibo.ui.AdminProductsFragment) {
+                ((com.example.kibo.ui.AdminProductsFragment) productsFragment).setSearchQuery(productName);
+            }
+        }, 300); // Tăng delay lên 300ms
+    }
+    
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {

@@ -204,7 +204,14 @@ public class AdminProductsFragment extends Fragment {
                     if (data != null) {
                         productList.clear();
                         productList.addAll(data);
-                        adapter.filterList(new ArrayList<>(productList));
+                        
+                        // Kiểm tra nếu có query trong search box thì filter
+                        String currentQuery = etSearch.getText().toString().trim();
+                        if (!currentQuery.isEmpty()) {
+                            filterProducts(currentQuery);
+                        } else {
+                            adapter.filterList(new ArrayList<>(productList));
+                        }
 
                         Toast.makeText(getContext(), "Đã tải " + productList.size() + " sản phẩm", Toast.LENGTH_SHORT).show();
                     } else {
@@ -238,5 +245,47 @@ public class AdminProductsFragment extends Fragment {
     // Method để chỉ refresh products (nhanh hơn)
     public void refreshProducts() {
         loadProductsFromApi();
+    }
+
+    // Method để set tên sản phẩm vào ô tìm kiếm
+    public void setSearchQuery(String productName) {
+        if (etSearch != null && productName != null) {
+            etSearch.setText(productName);
+            
+            // Luôn filter ngay lập tức với data hiện có
+            if (productList != null && !productList.isEmpty()) {
+                filterProducts(productName);
+            }
+            
+            // Nếu chưa có data, load lại
+            if (productList == null || productList.isEmpty()) {
+                loadProductsFromApiWithFilter(productName);
+            }
+        }
+    }
+    
+    // Load products với filter sau khi load xong
+    private void loadProductsFromApiWithFilter(String filterQuery) {
+        ApiService apiService = ApiClient.getApiService();
+        apiService.getAllProducts().enqueue(new retrofit2.Callback<ProductResponse>() {
+            @Override
+            public void onResponse(retrofit2.Call<ProductResponse> call, retrofit2.Response<ProductResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<Product> data = response.body().getData();
+                    if (data != null) {
+                        productList.clear();
+                        productList.addAll(data);
+                        
+                        // Filter ngay sau khi load xong
+                        filterProducts(filterQuery);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<ProductResponse> call, Throwable t) {
+                // Không cần làm gì nếu load thất bại
+            }
+        });
     }
 }

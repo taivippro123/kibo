@@ -9,6 +9,8 @@ import com.example.kibo.ui.AdminCategoryFragment;
 
 public class AdminManagementPagerAdapter extends FragmentStateAdapter {
     
+    private Fragment[] fragments = new Fragment[2];
+    
     public AdminManagementPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
         super(fragmentActivity);
     }
@@ -16,18 +18,29 @@ public class AdminManagementPagerAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
+        Fragment fragment;
         switch (position) {
             case 0:
-                return new AdminCategoryFragment();
+                fragment = new AdminCategoryFragment();
+                break;
             case 1:
-                return new AdminProductsFragment();
+                fragment = new AdminProductsFragment();
+                break;
             default:
-                return new AdminCategoryFragment();
+                fragment = new AdminCategoryFragment();
+                break;
         }
+        fragments[position] = fragment;
+        return fragment;
     }
     
     @Override
     public int getItemCount() {
         return 2; // Products và Categories
+    }
+    
+    // Method để lấy fragment theo position
+    public Fragment getFragment(int position) {
+        return fragments[position];
     }
 }
