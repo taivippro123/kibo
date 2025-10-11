@@ -5,64 +5,67 @@ import com.google.gson.annotations.SerializedName;
 public class Product {
     @SerializedName("productid")
     private int productId;
-    
+
     @SerializedName("productname")
     private String productName;
-    
+
     @SerializedName("briefdescription")
     private String briefDescription;
-    
+
     @SerializedName("fulldescription")
     private String fullDescription;
-    
+
     @SerializedName("price")
     private double price;
-    
+
     @SerializedName("imageurl")
     private String imageUrl;
-    
+
     @SerializedName("categoryid")
     private int categoryId;
-    
+
     @SerializedName("categoryname")
     private String categoryName;
-    
+
     @SerializedName("connection")
     private String connection;
-    
+
     @SerializedName("layout")
     private String layout;
-    
+
     @SerializedName("keycap")
     private String keycap;
-    
+
+    @SerializedName("switch")
+    private String switchDetailType;
+
     @SerializedName("switch_type")
     private String switchType;
-    
+
     @SerializedName("battery")
     private String battery;
-    
+
     @SerializedName("os")
     private String os;
-    
+
     @SerializedName("led")
     private String led;
-    
+
     @SerializedName("screen")
     private String screen;
-    
+
     @SerializedName("width")
     private int width;
-    
+
     @SerializedName("length")
     private int length;
-    
+
     @SerializedName("height")
     private int height;
-    
+
     @SerializedName("weight")
     private int weight;
-    
+
     @SerializedName("quantity")
     private int quantity;
 
@@ -109,6 +112,10 @@ public class Product {
 
     public String getKeycap() {
         return keycap;
+    }
+
+    public String getSwitchDetailType() {
+        return switchDetailType;
     }
 
     public String getSwitchType() {
@@ -181,6 +188,10 @@ public class Product {
         this.keycap = keycap;
     }
 
+    public void setSwitchDetailType(String switchDetailType) {
+        this.switchDetailType = switchDetailType;
+    }
+
     public void setSwitchType(String switchType) {
         this.switchType = switchType;
     }
@@ -200,43 +211,43 @@ public class Product {
     public void setScreen(String screen) {
         this.screen = screen;
     }
-    
+
     public int getWidth() {
         return width;
     }
-    
+
     public void setWidth(int width) {
         this.width = width;
     }
-    
+
     public int getLength() {
         return length;
     }
-    
+
     public void setLength(int length) {
         this.length = length;
     }
-    
+
     public int getHeight() {
         return height;
     }
-    
+
     public void setHeight(int height) {
         this.height = height;
     }
-    
+
     public int getWeight() {
         return weight;
     }
-    
+
     public void setWeight(int weight) {
         this.weight = weight;
     }
-    
+
     public int getQuantity() {
         return quantity;
     }
-    
+
     public void setQuantity(int quantity) {
         this.quantity = quantity;
     }
@@ -250,4 +261,3 @@ public class Product {
         return categoryName != null ? categoryName : "Chưa phân loại";
     }
 }
-

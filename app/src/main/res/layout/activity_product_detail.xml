@@ -1,69 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_coordinator"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
-    android:fitsSystemWindows="true">
+    android:background="@color/white">
 
-    <!-- Header with back button -->
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/primary_color"
-        app:elevation="4dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingLeft="8dp"
-            android:paddingRight="16dp">
-
-            <ImageButton
-                android:id="@+id/btn_back"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_back"
-                android:tint="@android:color/white"/>
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Chi tiết sản phẩm"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:textStyle="bold"/>
-        </LinearLayout>
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <!-- Content -->
-    <androidx.core.widget.NestedScrollView
+    <!-- Loading overlay (Activity dùng loading_layout) -->
+    <FrameLayout
+        android:id="@+id/loading_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="80dp"
-        android:clipToPadding="false"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:background="#80000000"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
+    <!-- Nội dung chính (cuộn) -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Product Image Gallery -->
+            <!-- Header image (giữ nguyên) -->
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
-                android:background="@color/gray_light">
-                
+                android:layout_height="260dp">
+
                 <androidx.viewpager2.widget.ViewPager2
                     android:id="@+id/view_pager_images"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-                
+                    android:layout_height="260dp"
+                    android:background="@color/white" />
+
                 <!-- Image indicators -->
                 <LinearLayout
                     android:id="@+id/layout_indicators"
@@ -72,9 +52,8 @@
                     android:layout_gravity="bottom|center_horizontal"
                     android:layout_marginBottom="16dp"
                     android:orientation="horizontal"
-                    android:padding="8dp"
-                    android:background="@drawable/indicator_background" />
-                
+                    android:visibility="gone" />
+
                 <!-- Image counter -->
                 <TextView
                     android:id="@+id/tv_image_counter"
@@ -88,363 +67,647 @@
                     android:textColor="@color/white"
                     android:textSize="12sp"
                     android:textStyle="bold" />
-                
+
             </FrameLayout>
 
-            <!-- Product Info -->
-            <LinearLayout
+            <!-- Card overlay: đè lên ảnh (sử dụng negative margin) -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_main"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="-40dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true">
 
-                <!-- Product Name -->
-                <TextView
-                    android:id="@+id/tv_product_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Tên sản phẩm"
-                    android:textSize="20sp"
-                    android:textColor="@color/gray_dark"
-                    android:textStyle="bold"/>
-
-                <!-- Price -->
-                <TextView
-                    android:id="@+id/tv_product_price"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="1.800.000đ"
-                    android:textSize="24sp"
-                    android:textColor="@color/primary_color"
-                    android:textStyle="bold"
-                    android:layout_marginTop="8dp"/>
-
-                <!-- Brief Description -->
-                <TextView
-                    android:id="@+id/tv_brief_description"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mô tả ngắn"
-                    android:textSize="14sp"
-                    android:textColor="@color/gray_medium"
-                    android:layout_marginTop="12dp"/>
-
-                <!-- Divider -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/gray_light"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="16dp"/>
-
-                <!-- Full Description Section -->
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mô tả chi tiết"
-                    android:textSize="16sp"
-                    android:textColor="@color/gray_dark"
-                    android:textStyle="bold"/>
-
-                <TextView
-                    android:id="@+id/tv_full_description"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mô tả đầy đủ sản phẩm"
-                    android:textSize="14sp"
-                    android:textColor="@color/gray_dark"
-                    android:layout_marginTop="8dp"
-                    android:lineSpacingExtra="4dp"/>
-
-                <!-- Divider -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/gray_light"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="16dp"/>
-
-                <!-- Specifications Section -->
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Thông số kỹ thuật"
-                    android:textSize="16sp"
-                    android:textColor="@color/gray_dark"
-                    android:textStyle="bold"/>
-
-                <!-- Spec Items -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="12dp">
+                    android:padding="14dp">
 
-                    <!-- Connection -->
+                    <!-- Category Name -->
+                    <TextView
+                        android:id="@+id/tv_category_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="@color/red_dark"
+                        android:textStyle="bold"
+                        android:textSize="15sp" />
+
+                    <!-- Title (allow wrap to two lines like demo) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
+                        android:layout_marginTop="6dp">
+
                         <TextView
-                            android:layout_width="120dp"
-                            android:layout_height="wrap_content"
-                            android:text="Kết nối:"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_medium"
-                            android:textStyle="bold"/>
-                        <TextView
-                            android:id="@+id/tv_connection"
+                            android:id="@+id/tv_product_name"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Wired"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_dark"/>
-                    </LinearLayout>
+                            android:ellipsize="end"
+                            android:maxLines="2"
+                            android:text="@string/hint_product_name"
+                            android:textColor="@color/black"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
 
-                    <!-- Layout -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_gravity="end"
+                            android:gravity="end">
+
+                            <!-- Giá hiện tại -->
+                            <TextView
+                                android:id="@+id/tv_product_price"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/hint_price"
+                                android:textColor="@color/red_dark"
+                                android:textStyle="bold"
+                                android:textSize="18sp" />
+
+                            <!-- Giá cũ + phần trăm giảm -->
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+                                <TextView
+                                    android:id="@+id/tv_old_price"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="3.690.000đ"
+                                    android:textSize="12sp"
+                                    android:textColor="@color/gray_dark"
+                                    android:layout_marginEnd="6dp" />
+
+                                <TextView
+                                    android:id="@+id/tv_discount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textSize="12sp"
+                                    android:textColor="@android:color/holo_red_dark"
+                                    android:padding="4dp"
+                                    android:visibility="gone"/>
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+                    <!-- Price row: price (right aligned) + old price + discount -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
-                        <TextView
-                            android:layout_width="120dp"
-                            android:layout_height="wrap_content"
-                            android:text="Layout:"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_medium"
-                            android:textStyle="bold"/>
-                        <TextView
-                            android:id="@+id/tv_layout"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp">
+
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="87%"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_dark"/>
+                            android:orientation="vertical">
+
+                            <!-- small description under title -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:layout_marginTop="8dp"
+                                android:paddingHorizontal="8dp">
+
+                                <!-- Text mô tả -->
+                                <TextView
+                                    android:id="@+id/tv_brief_description"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="PBT Dye-Sub; Cherry profile"
+                                    android:textSize="14sp"
+                                    android:textColor="@color/gray_dark"
+                                    android:ellipsize="end"
+                                    android:maxLines="2" />
+
+                                <!-- Cụm tăng/giảm số lượng -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center">
+
+                                    <Button
+                                        android:id="@+id/button_decrease"
+                                        android:layout_width="48dp"
+                                        android:layout_height="48dp"
+                                        android:backgroundTint="@color/red_dark"
+                                        android:contentDescription="Giảm số lượng"
+                                        android:gravity="center"
+                                        android:text="-"
+                                        android:textColor="@android:color/white"
+                                        android:textSize="16sp" />
+
+                                    <TextView
+                                        android:id="@+id/text_quantity"
+                                        android:layout_width="30dp"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:text="1"
+                                        android:textColor="@color/black"
+                                        android:textSize="18sp"
+                                        android:textStyle="bold" />
+
+                                    <Button
+                                        android:id="@+id/button_increase"
+                                        android:layout_width="48dp"
+                                        android:layout_height="48dp"
+                                        android:text="+"
+                                        android:textColor="@android:color/white"
+                                        android:textSize="16sp"
+                                        android:backgroundTint="@color/red_dark"
+                                        android:gravity="center"
+                                        android:contentDescription="Tăng số lượng"/>
+                                </LinearLayout>
+
+                            </LinearLayout>
+
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="8dp">
+
+                                <!-- CỤM 1: Rating & Reviews -->
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <TextView
+                                        android:layout_width="16dp"
+                                        android:layout_height="16dp"
+                                        android:text="★"
+                                        android:textColor="@android:color/holo_orange_dark"
+                                        android:gravity="center"
+                                        android:textSize="12sp" />
+
+                                    <TextView
+                                        android:id="@+id/tv_rating"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:text="4.9 (23)"
+                                        android:textColor="@color/black"
+                                        android:textSize="13sp" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="6dp"
+                                        android:text="Ratings and reviews"
+                                        android:textColor="@color/gray_medium"
+                                        android:textSize="13sp" />
+                                </LinearLayout>
+
+                                <TextView
+                                    android:id="@+id/btn_arrow_right"
+                                    android:layout_width="48dp"
+                                    android:layout_height="48dp"
+                                    android:text=">"
+                                    android:textColor="@color/red_dark"
+                                    android:gravity="center"
+                                    android:textSize="18sp"
+                                    android:background="@null"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:padding="12dp" />
+
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="end">
+
+                        </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Keycap -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
-                        <TextView
-                            android:layout_width="120dp"
-                            android:layout_height="wrap_content"
-                            android:text="Keycap:"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_medium"
-                            android:textStyle="bold"/>
-                        <TextView
-                            android:id="@+id/tv_keycap"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="PBT"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_dark"/>
-                    </LinearLayout>
-
-                    <!-- Switch -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
-                        <TextView
-                            android:layout_width="120dp"
-                            android:layout_height="wrap_content"
-                            android:text="Switch:"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_medium"
-                            android:textStyle="bold"/>
-                        <TextView
-                            android:id="@+id/tv_switch"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Akko CS switch"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_dark"/>
-                    </LinearLayout>
-
-                    <!-- Battery -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
-                        <TextView
-                            android:layout_width="120dp"
-                            android:layout_height="wrap_content"
-                            android:text="Pin:"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_medium"
-                            android:textStyle="bold"/>
-                        <TextView
-                            android:id="@+id/tv_battery"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Không"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_dark"/>
-                    </LinearLayout>
-
-                    <!-- OS -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
-                        <TextView
-                            android:layout_width="120dp"
-                            android:layout_height="wrap_content"
-                            android:text="Hệ điều hành:"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_medium"
-                            android:textStyle="bold"/>
-                        <TextView
-                            android:id="@+id/tv_os"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Windows/MacOS"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_dark"/>
-                    </LinearLayout>
-
-                    <!-- LED -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
-                        <TextView
-                            android:layout_width="120dp"
-                            android:layout_height="wrap_content"
-                            android:text="LED:"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_medium"
-                            android:textStyle="bold"/>
-                        <TextView
-                            android:id="@+id/tv_led"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Không"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_dark"/>
-                    </LinearLayout>
-
-                    <!-- Screen -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
-                        <TextView
-                            android:layout_width="120dp"
-                            android:layout_height="wrap_content"
-                            android:text="Màn hình:"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_medium"
-                            android:textStyle="bold"/>
-                        <TextView
-                            android:id="@+id/tv_screen"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Không"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray_dark"/>
-                    </LinearLayout>
+                    <!-- Quantity + rating row -->
                 </LinearLayout>
-            </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Customize card: giống ảnh -->
+            <!-- Customize card -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_customize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="120dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp">
+
+                    <!-- Tiêu đề Customize -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Customize"
+                        android:textColor="@color/red_dark"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Mô tả đầy đủ sản phẩm -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Mô tả"
+                        android:textColor="@color/black"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/tv_full_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Mô tả sản phẩm chi tiết sẽ hiển thị ở đây"
+                        android:textSize="14sp"
+                        android:textColor="@color/black"
+                        android:lineSpacingExtra="3dp"
+                        android:layout_marginBottom="16dp"
+                        android:paddingHorizontal="8dp"/>
+
+                    <!-- Hàng phụ kiện -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="0.35"
+                            android:layout_height="wrap_content"
+                            android:text="Phụ kiện"
+                            android:textStyle="bold"
+                            android:textSize="15sp"
+                            android:textColor="@color/black" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="0.65"
+                            android:layout_height="wrap_content"
+                            android:text="1 sách hướng dẫn sử dụng + 1 dây USB Type-C + 1 che bụi bàn phím + Keycap tặng thêm"
+                            android:textSize="15sp"
+                            android:textColor="@color/black"
+                            android:lineSpacingExtra="3dp"
+                            android:paddingEnd="8dp"/>
+                    </LinearLayout>
+
+                    <!-- Specs with fixed titles -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="8dp"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp">
+
+                        <!-- Connection -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="Kết nối:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_connection"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+
+                        <!-- Layout -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="Layout:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_layout"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+
+                        <!-- Keycap -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="Keycap:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_keycap"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+
+                        <!-- Switch -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="Switch:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_switch"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+                        <!-- LED -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="LED:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_led"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+                        <!-- Battery -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="Pin:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_battery"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+
+                        <!-- OS -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="Hệ điều hành:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_os"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+
+                        <!-- Kích thước -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="Kích thước:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_dimensions"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+
+                        <!-- Screen -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp">
+                            <TextView
+                                android:layout_width="120dp"
+                                android:layout_height="wrap_content"
+                                android:text="Màn hình:"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_medium"
+                                android:textStyle="bold"/>
+                            <TextView
+                                android:id="@+id/tv_screen"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="N/A"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray_dark"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Bottom action buttons -->
+    <!-- Back button -->
+    <ImageButton
+        android:id="@+id/btn_back"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_back"
+        android:contentDescription="Quay lại"
+        android:elevation="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="16dp"
+        app:tint="@color/red_dark" />
+
+    <!-- Bottom sticky bar: Total + Add Order (giữ nguyên phần này) -->
     <LinearLayout
+        android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+        android:layout_height="76dp"
         android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:gravity="center_vertical"
         android:background="@color/white"
-        android:padding="12dp"
-        android:elevation="8dp">
+        android:elevation="10dp"
+        android:layout_gravity="bottom">
 
-        <!-- Chat button (white with blue icon) -->
         <LinearLayout
-            android:id="@+id/btn_chat"
             android:layout_width="0dp"
-            android:layout_height="56dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:background="@drawable/button_white_outline"
-            android:clickable="true"
-            android:focusable="true"
-            android:padding="12dp">
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_chat"
-                android:layout_marginEnd="8dp"
-                android:tint="@color/primary_color"/>
+            android:layout_height="wrap_content"
+            android:layout_weight="1.3"
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CHAT"
-                android:textColor="@color/primary_color"
-                android:textSize="14sp"
+                android:text="Total"
+                android:textSize="12sp"
+                android:textColor="@color/gray_dark"/>
+
+            <TextView
+                android:id="@+id/tv_total_price"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2.950.000đ"
+                android:textColor="@color/red_dark"
                 android:textStyle="bold"
-                android:textAllCaps="false"/>
+                android:textSize="16sp"/>
+        </LinearLayout>
+
+        <!-- Chat button -->
+        <LinearLayout
+            android:id="@+id/btn_chat"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="0.5"
+            android:background="@null"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/outline_chat"
+                app:tint="@color/red_dark" />
 
         </LinearLayout>
 
-        <!-- Buy button (red with white text) -->
         <Button
             android:id="@+id/btn_buy"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="48dp"
             android:layout_weight="2"
-            android:text="THÊM VÀO GIỎ HÀNG"
+            android:text="Thêm vào giỏ hàng"
             android:textColor="@color/white"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:background="@drawable/button_red_background"
-            android:textAllCaps="false"/>
+            android:backgroundTint="@color/red_dark"
+            android:textStyle="bold"/>
     </LinearLayout>
-
-    <!-- Loading overlay -->
-    <FrameLayout
-        android:id="@+id/loading_layout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#80FFFFFF"
-        android:visibility="gone">
-
-        <ProgressBar
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"/>
-    </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
