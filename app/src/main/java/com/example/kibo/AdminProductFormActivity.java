@@ -234,7 +234,7 @@ public class AdminProductFormActivity extends AppCompatActivity {
     private byte[] readAllBytesCompat(java.io.InputStream inputStream) throws IOException {
         java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
         int nRead;
-        byte[] data = new byte[65536]; // Tăng buffer lên 64KB để đọc nhanh hơn
+        byte[] data = new byte[524288]; // Tăng buffer lên 512KB để đọc cực nhanh
         
         while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
             buffer.write(data, 0, nRead);
@@ -256,7 +256,7 @@ public class AdminProductFormActivity extends AppCompatActivity {
         try {
             android.graphics.Bitmap originalBitmap = android.graphics.BitmapFactory.decodeByteArray(originalBytes, 0, originalBytes.length);
             
-            // Resize ảnh nếu quá lớn (max 1920x1080)
+            // Resize ảnh nếu quá lớn (max 1920x1080) - Giữ nguyên kích thước để đảm bảo độ nét
             int maxWidth = 1920;
             int maxHeight = 1080;
             int width = originalBitmap.getWidth();
@@ -270,7 +270,7 @@ public class AdminProductFormActivity extends AppCompatActivity {
                 originalBitmap = android.graphics.Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true);
             }
             
-            // Compress với quality 80%
+            // Compress với quality 80% - Giữ nguyên quality để đảm bảo độ nét
             java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
             originalBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, outputStream);
             
@@ -386,6 +386,15 @@ public class AdminProductFormActivity extends AppCompatActivity {
     }
 
     private void createProduct() {
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Đang tạo sản phẩm...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
+        sendCreateRequest(progressDialog);
+    }
+    
+    private void sendCreateRequest(ProgressDialog progressDialog) {
         ApiService api = ApiClient.getApiService();
 
         RequestBody productname = RequestBody.create(MediaType.parse("text/plain"), etName.getText().toString().trim());
@@ -429,6 +438,7 @@ public class AdminProductFormActivity extends AppCompatActivity {
                 .enqueue(new Callback<ApiResponse<String>>() {
                     @Override
                     public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                        progressDialog.dismiss();
                         if (response.isSuccessful()) {
                             Toast.makeText(AdminProductFormActivity.this, "Tạo sản phẩm thành công", Toast.LENGTH_SHORT).show();
                             finish();
@@ -439,7 +449,8 @@ public class AdminProductFormActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
-                        Toast.makeText(AdminProductFormActivity.this, "Lỗi mạng khi tạo sản phẩm", Toast.LENGTH_SHORT).show();
+                        progressDialog.dismiss();
+                        Toast.makeText(AdminProductFormActivity.this, "Lỗi mạng khi tạo sản phẩm: " + t.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }

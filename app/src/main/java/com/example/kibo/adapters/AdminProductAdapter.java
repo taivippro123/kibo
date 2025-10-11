@@ -21,6 +21,7 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
     private List<Category> categoryList; // ✅ THÊM DANH SÁCH CATEGORIES
     private OnEditClickListener onEditClickListener;
     private OnDeleteClickListener onDeleteClickListener;
+    private OnProductNameClickListener onProductNameClickListener;
 
     public interface OnEditClickListener {
         void onEditClick(Product product);
@@ -30,14 +31,20 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
         void onDeleteClick(Product product);
     }
 
+    public interface OnProductNameClickListener {
+        void onProductNameClick(Product product);
+    }
+
     public AdminProductAdapter(List<Product> productList,
                                List<Category> categoryList, // ✅ THÊM PARAMETER
                                OnEditClickListener onEditClickListener,
-                               OnDeleteClickListener onDeleteClickListener) {
+                               OnDeleteClickListener onDeleteClickListener,
+                               OnProductNameClickListener onProductNameClickListener) {
         this.productList = new ArrayList<>(productList);
         this.categoryList = new ArrayList<>(categoryList); // ✅ KHỞI TẠO
         this.onEditClickListener = onEditClickListener;
         this.onDeleteClickListener = onDeleteClickListener;
+        this.onProductNameClickListener = onProductNameClickListener;
     }
 
     @NonNull
@@ -55,7 +62,25 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
         // Gắn dữ liệu từ Product model
         holder.tvName.setText(product.getProductName());
         holder.tvPrice.setText(product.getFormattedPrice());
-        holder.tvStock.setText(product.getStockText());
+        
+        // Hiển thị tồn kho với màu sắc
+        int stock = product.getQuantity();
+        holder.tvStock.setText("Tồn kho: " + stock);
+        
+        // Thêm background màu cho tồn kho
+        if (stock <= 0) {
+            // Đỏ: Hết hàng
+            holder.tvStock.setBackgroundResource(R.drawable.stock_red_background);
+            holder.tvStock.setTextColor(holder.itemView.getContext().getResources().getColor(android.R.color.white));
+        } else if (stock < 10) {
+            // Cam: Sắp hết hàng (1-9)
+            holder.tvStock.setBackgroundResource(R.drawable.stock_yellow_background);
+            holder.tvStock.setTextColor(holder.itemView.getContext().getResources().getColor(android.R.color.white));
+        } else {
+            // Xanh: Còn nhiều hàng (>=10)
+            holder.tvStock.setBackgroundResource(R.drawable.stock_green_background);
+            holder.tvStock.setTextColor(holder.itemView.getContext().getResources().getColor(android.R.color.white));
+        }
 
         // ✅ SỬ DỤNG HELPER METHOD
         String categoryName = getCategoryNameById(product.getCategoryId());
@@ -74,6 +99,13 @@ public class AdminProductAdapter extends RecyclerView.Adapter<AdminProductAdapte
 
         holder.btnEdit.setOnClickListener(v -> onEditClickListener.onEditClick(product));
         holder.btnDelete.setOnClickListener(v -> onDeleteClickListener.onDeleteClick(product));
+        
+        // Click vào tên sản phẩm để hiển thị popup chi tiết
+        holder.tvName.setOnClickListener(v -> {
+            if (onProductNameClickListener != null) {
+                onProductNameClickListener.onProductNameClick(product);
+            }
+        });
     }
 
     // ✅ HELPER METHOD - GIỐNG NHƯ TRONG ADMINPRODUCTFORMACTIVITY
