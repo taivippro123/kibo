@@ -19,6 +19,7 @@ import com.example.kibo.adapters.AdminCategoryAdapter;
 import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
 import com.example.kibo.dialogs.CategoryFormDialog;
+import com.example.kibo.dialogs.CategoryProductsDialog;
 import com.example.kibo.models.ApiResponse;
 import com.example.kibo.models.Category;
 import com.example.kibo.models.CategoryResponse;
@@ -65,6 +66,9 @@ public class AdminCategoryFragment extends Fragment {
             this::onEditClick,
             this::onDeleteClick
         );
+        
+        // Thêm click listener cho tên danh mục
+        adapter.setOnCategoryClickListener(this::onCategoryClick);
         rvCategories.setAdapter(adapter);
         
         loadCategories();
@@ -101,6 +105,19 @@ public class AdminCategoryFragment extends Fragment {
     
     private void onDeleteClick(Category category) {
         showDeleteConfirmDialog(category);
+    }
+    
+    private void onCategoryClick(Category category) {
+        // Mở dialog hiển thị sản phẩm của danh mục
+        CategoryProductsDialog dialog = CategoryProductsDialog.newInstance(category);
+        dialog.setOnProductClickListener(product -> {
+            // Nhảy qua tab "Sản phẩm" và hiện tên sản phẩm trong ô tìm kiếm
+            if (getActivity() instanceof com.example.kibo.AdminManagementActivity) {
+                com.example.kibo.AdminManagementActivity adminActivity = (com.example.kibo.AdminManagementActivity) getActivity();
+                adminActivity.navigateToProductsWithSearch(product.getProductName());
+            }
+        });
+        dialog.show(getChildFragmentManager(), "CategoryProductsDialog");
     }
     
     private void showDeleteConfirmDialog(Category category) {

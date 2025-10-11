@@ -61,7 +61,16 @@ public class CategoryFormDialog extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        return super.onCreateDialog(savedInstanceState);
+        Dialog dialog = super.onCreateDialog(savedInstanceState);
+        
+        // Xóa background mặc định để không có viền vuông
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        
+        // Đặt dialog rộng tối đa
+        dialog.getWindow().setLayout(android.view.WindowManager.LayoutParams.MATCH_PARENT, 
+                                   android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+        
+        return dialog;
     }
     
     @Nullable

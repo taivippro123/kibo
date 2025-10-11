@@ -82,7 +82,16 @@ public class ProductDetailDialog extends DialogFragment {
         // Load categories first, then product data
         loadCategories();
         
-        return builder.create();
+        AlertDialog dialog = builder.create();
+        
+        // Xóa background mặc định để không có viền vuông
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        
+        // Đặt dialog rộng tối đa
+        dialog.getWindow().setLayout(android.view.WindowManager.LayoutParams.MATCH_PARENT, 
+                                   android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+        
+        return dialog;
     }
 
     private void setupViews(View view) {
