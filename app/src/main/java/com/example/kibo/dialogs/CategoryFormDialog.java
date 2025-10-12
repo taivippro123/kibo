@@ -1,8 +1,10 @@
 package com.example.kibo.dialogs;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -121,6 +123,12 @@ public class CategoryFormDialog extends DialogFragment {
     }
     
     private void createCategory(String categoryName) {
+        // Hiển thị loading spinner
+        ProgressDialog progressDialog = new ProgressDialog(getContext());
+        progressDialog.setMessage("Đang tạo danh mục...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
         CategoryRequest request = new CategoryRequest(categoryName);
         ApiService apiService = ApiClient.getApiService();
         
@@ -129,42 +137,62 @@ public class CategoryFormDialog extends DialogFragment {
             public void onResponse(Call<ApiResponse<Category>> call, Response<ApiResponse<Category>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     Toast.makeText(getContext(), "Tạo danh mục thành công", Toast.LENGTH_SHORT).show();
-                    if (listener != null) {
-                        listener.onCategorySaved();
-                    }
-                    dismiss();
+                    
+                    // Delay 1 giây trước khi dismiss để tránh spam
+                    new Handler().postDelayed(() -> {
+                        progressDialog.dismiss(); // Dismiss ProgressDialog trước
+                        if (listener != null) {
+                            listener.onCategorySaved();
+                        }
+                        dismiss(); // Sau đó dismiss popup
+                    }, 1000);
                 } else {
+                    progressDialog.dismiss();
                     Toast.makeText(getContext(), "Tạo danh mục thất bại", Toast.LENGTH_SHORT).show();
                 }
             }
             
             @Override
             public void onFailure(Call<ApiResponse<Category>> call, Throwable t) {
+                progressDialog.dismiss();
                 Toast.makeText(getContext(), "Lỗi mạng khi tạo danh mục: " + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
     
     private void updateCategory(String categoryName) {
-        CategoryRequest request = new CategoryRequest(categoryName);
+        // Hiển thị loading spinner
+        ProgressDialog progressDialog = new ProgressDialog(getContext());
+        progressDialog.setMessage("Đang cập nhật danh mục...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
+        CategoryRequest request = new CategoryRequest(categoryName, categoryId);
         ApiService apiService = ApiClient.getApiService();
         
-        apiService.updateCategory(categoryId, request).enqueue(new Callback<ApiResponse<Category>>() {
+        apiService.updateCategory(categoryId, request).enqueue(new Callback<Void>() {
             @Override
-            public void onResponse(Call<ApiResponse<Category>> call, Response<ApiResponse<Category>> response) {
-                if (response.isSuccessful() && response.body() != null) {
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful() || response.code() == 204) {
                     Toast.makeText(getContext(), "Cập nhật danh mục thành công", Toast.LENGTH_SHORT).show();
-                    if (listener != null) {
-                        listener.onCategorySaved();
-                    }
-                    dismiss();
+                    
+                    // Delay 1 giây trước khi dismiss để tránh spam
+                    new Handler().postDelayed(() -> {
+                        progressDialog.dismiss(); // Dismiss ProgressDialog trước
+                        if (listener != null) {
+                            listener.onCategorySaved();
+                        }
+                        dismiss(); // Sau đó dismiss popup
+                    }, 1000);
                 } else {
-                    Toast.makeText(getContext(), "Cập nhật danh mục thất bại", Toast.LENGTH_SHORT).show();
+                    progressDialog.dismiss();
+                    Toast.makeText(getContext(), "Cập nhật danh mục thất bại - Code: " + response.code(), Toast.LENGTH_SHORT).show();
                 }
             }
             
             @Override
-            public void onFailure(Call<ApiResponse<Category>> call, Throwable t) {
+            public void onFailure(Call<Void> call, Throwable t) {
+                progressDialog.dismiss();
                 Toast.makeText(getContext(), "Lỗi mạng khi cập nhật danh mục: " + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
