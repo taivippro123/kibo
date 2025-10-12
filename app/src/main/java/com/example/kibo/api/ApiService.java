@@ -200,7 +200,7 @@ public interface ApiService {
 
     // Update category
     @PUT("Categories/{id}")
-    Call<ApiResponse<Category>> updateCategory(@Path("id") int id, @Body CategoryRequest request);
+    Call<Void> updateCategory(@Path("id") int id, @Body CategoryRequest request);
 
     // Delete category
     @HTTP(method = "DELETE", path = "Categories/{id}", hasBody = false)
