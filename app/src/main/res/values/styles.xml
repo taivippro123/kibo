@@ -1,0 +1,8 @@
+<resources>
+    <!-- Prevent TabLayout from forcing ALL CAPS -->
+    <style name="TextAppearance.Kibo.Tab" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="textAllCaps">false</item>
+    </style>
+</resources>
+
+

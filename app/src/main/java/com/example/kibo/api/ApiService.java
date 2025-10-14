@@ -14,6 +14,7 @@ import com.example.kibo.models.Ward;
 import com.example.kibo.models.UpdateUserRequest;
 import com.example.kibo.models.FullAddressResponse;
 import com.example.kibo.models.CategoryResponse;
+import com.example.kibo.models.Category;
 import com.example.kibo.models.Cart;
 import com.example.kibo.models.CartRequest;
 import com.example.kibo.models.CartItemRequest;
@@ -29,6 +30,10 @@ import com.example.kibo.models.VoucherUseResponse;
 import com.example.kibo.models.ShippingOrderRequest;
 import com.example.kibo.models.ShippingOrderResponse;
 import com.example.kibo.models.ProductImage;
+import com.example.kibo.models.Order;
+import com.example.kibo.models.OrderDetail;
+import com.example.kibo.models.OrderDetailsResponse;
+import com.example.kibo.models.CategoryRequest;
 
 import java.util.List;
 
@@ -66,8 +71,17 @@ public interface ApiService {
     // Get products with pagination
     @GET("Products")
     Call<ProductResponse> getProducts(
-            @Query("pageNumber") int pageNumber,
-            @Query("pageSize") int pageSize);
+        @Query("pageNumber") int pageNumber,
+        @Query("pageSize") int pageSize
+    );
+
+    // Get products by category with pagination
+    @GET("Products")
+    Call<ProductResponse> getProductsByCategory(
+        @Query("Categoryid") int categoryId,
+        @Query("pageNumber") int pageNumber,
+        @Query("pageSize") int pageSize
+    );
 
     // Get all products without pagination
     @GET("Products")
@@ -182,9 +196,29 @@ public interface ApiService {
     @GET("Categories")
     Call<CategoryResponse> getCategories();
 
+
+    // Create category
+    @POST("Categories")
+    Call<ApiResponse<Category>> createCategory(@Body CategoryRequest request);
+
+    // Update category
+    @PUT("Categories/{id}")
+    Call<Void> updateCategory(@Path("id") int id, @Body CategoryRequest request);
+
+    // Delete category
+    @HTTP(method = "DELETE", path = "Categories/{id}", hasBody = false)
+    Call<ApiResponse<String>> deleteCategory(@Path("id") int id);
+
     // Get user by ID
     @GET("Users")
     Call<UserResponse> getUserById(@Query("Userid") int userId);
+
+    // Orders
+    @GET("Orders")
+    Call<java.util.List<Order>> getOrders(@Query("UserId") int userId);
+
+    @GET("OrderDetails")
+    Call<OrderDetailsResponse> getOrderDetails(@Query("OrderId") int orderId);
 
     // Calculate shipping fee
     @POST("Shipping/fee")

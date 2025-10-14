@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -47,6 +49,9 @@ public class ConfirmOrderActivity extends AppCompatActivity {
     private TextView textViewShipping;
     private TextView textViewTotal;
     private Button buttonConfirmOrder;
+    private RadioGroup radioGroupPayment;
+    private RadioButton radioPaymentZaloPay;
+    private RadioButton radioPaymentCash;
     
     private CartItemAdapter cartItemAdapter;
     private java.util.ArrayList<CartItem> items = new java.util.ArrayList<>();
@@ -55,6 +60,7 @@ public class ConfirmOrderActivity extends AppCompatActivity {
     private Voucher selectedVoucher;
     private double voucherDiscount = 0;
     private com.example.kibo.models.Product firstProduct; // Store first product for dimensions
+    private int firstProductQuantity = 0;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +108,11 @@ public class ConfirmOrderActivity extends AppCompatActivity {
         textViewShipping = findViewById(R.id.text_view_shipping);
         textViewTotal = findViewById(R.id.text_view_total);
         buttonConfirmOrder = findViewById(R.id.button_confirm_order);
+        radioGroupPayment = findViewById(R.id.radio_group_payment);
+        radioPaymentZaloPay = findViewById(R.id.radio_payment_zalopay);
+        radioPaymentCash = findViewById(R.id.radio_payment_cash);
+        // Default select ZaloPay
+        if (radioPaymentZaloPay != null) radioPaymentZaloPay.setChecked(true);
     }
     
     private void loadUserData() {
@@ -237,6 +248,9 @@ public class ConfirmOrderActivity extends AppCompatActivity {
                     items.addAll(data);
                     // load product details to get image and current price/name
                     loadProductDetails(items);
+                    if (items.size() > 0) {
+                        firstProductQuantity = items.get(0).getQuantity();
+                    }
                 }
             }
 
@@ -541,13 +555,31 @@ public class ConfirmOrderActivity extends AppCompatActivity {
         int length = firstProduct.getLength() > 0 ? firstProduct.getLength() : 10;
         int width = firstProduct.getWidth() > 0 ? firstProduct.getWidth() : 10;
         int height = firstProduct.getHeight() > 0 ? firstProduct.getHeight() : 10;
+
+        // Determine payment method: 1=bank(ZaloPay), 2=cash
+        int paymentMethod = 1;
+        if (radioPaymentCash != null && radioPaymentCash.isChecked()) {
+            paymentMethod = 2;
+        }
         
         // Create shipping order request
         com.example.kibo.models.ShippingOrderRequest request = new com.example.kibo.models.ShippingOrderRequest(
-            toName, toPhone, toAddress, 
+            toName, toPhone, toAddress,
             toWardCode, toDistrictId,
             weight, length, width, height,
-            userId, cartId
+            2, // serviceTypeId
+            2, // paymentTypeId
+            0, // codAmount (0 if prepaid)
+            0, // insuranceValue
+            null, // content
+            null, // note
+            null, // requiredNote
+            paymentMethod, // 1 bank (ZaloPay), 2 cash
+            actualShippingFee, // shippingFee
+            userId,
+            cartId,
+            firstProduct.getProductId(),
+            firstProductQuantity > 0 ? firstProductQuantity : 1
         );
         
         // Show loading
@@ -570,8 +602,11 @@ public class ConfirmOrderActivity extends AppCompatActivity {
                     
                     Toast.makeText(ConfirmOrderActivity.this, message, Toast.LENGTH_LONG).show();
                     
-                    // Navigate back to main screen or order history
-                    finish();
+                    // Navigate to Orders tab
+                    android.content.Intent intent = new android.content.Intent(ConfirmOrderActivity.this, MainActivity.class);
+                    intent.putExtra("selected_tab", 1); // Orders tab index
+                    intent.setFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
                 } else {
                     String errorMessage = "Không thể tạo đơn hàng";
                     if (response.body() != null && response.body().getMessage() != null) {

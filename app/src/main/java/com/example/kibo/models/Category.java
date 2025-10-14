@@ -1,8 +1,9 @@
 package com.example.kibo.models;
 
 import com.google.gson.annotations.SerializedName;
+import java.io.Serializable;
 
-public class Category {
+public class Category implements Serializable {
     @SerializedName("categoryid")
     private int categoryId;
 
