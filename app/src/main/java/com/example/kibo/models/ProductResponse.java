@@ -4,7 +4,8 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 public class ProductResponse {
-    @SerializedName("data")
+    // API có thể trả về "data" hoặc "products"
+    @SerializedName(value = "data", alternate = {"products"})
     private List<Product> data;
     
     @SerializedName("totalPages")

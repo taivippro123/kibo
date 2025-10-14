@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="16dp"
+    android:background="@drawable/bg_item_product_popup"
+    android:gravity="center_vertical">
+
+    <!-- Hình ảnh sản phẩm -->
+    <ImageView
+        android:id="@+id/img_product"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginEnd="8dp"
+        android:scaleType="centerCrop"
+        android:background="@drawable/bg_rounded_image"
+        android:src="@drawable/placeholder_product"
+        android:contentDescription="Hình sản phẩm" />
+
+    <!-- Thông tin sản phẩm -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Dòng 1: Tên sản phẩm -->
+        <TextView
+            android:id="@+id/tv_product_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tên sản phẩm"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <!-- Dòng 2: Tồn kho -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_inventory"
+                android:layout_marginEnd="4dp"
+                android:contentDescription="Tồn kho" />
+
+            <TextView
+                android:id="@+id/tv_stock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Còn: 10"
+                android:textSize="15sp"
+                android:textColor="@color/text_secondary" />
+
+        </LinearLayout>
+
+        <!-- Dòng 3: Giá sản phẩm -->
+        <TextView
+            android:id="@+id/tv_price"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1,000,000 VNĐ"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_red"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
+
+    <!-- Arrow indicator -->
+    <ImageView
+        android:id="@+id/img_arrow"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_arrow_right"
+        android:layout_marginStart="4dp"
+        android:alpha="0.5"
+        android:contentDescription="Mũi tên" />
+
+</LinearLayout>

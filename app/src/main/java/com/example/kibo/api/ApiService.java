@@ -6,12 +6,15 @@ import com.example.kibo.models.LoginResponse;
 import com.example.kibo.models.OtpRequest;
 import com.example.kibo.models.RegisterRequest;
 import com.example.kibo.models.User;
+import com.example.kibo.models.Product;
 import com.example.kibo.models.ProductResponse;
 import com.example.kibo.models.Province;
 import com.example.kibo.models.District;
 import com.example.kibo.models.Ward;
 import com.example.kibo.models.UpdateUserRequest;
 import com.example.kibo.models.FullAddressResponse;
+import com.example.kibo.models.CategoryResponse;
+import com.example.kibo.models.Category;
 import com.example.kibo.models.Cart;
 import com.example.kibo.models.CartRequest;
 import com.example.kibo.models.CartItemRequest;
@@ -19,12 +22,25 @@ import com.example.kibo.models.CartItem;
 import com.example.kibo.models.CartItemsResponse;
 import com.example.kibo.models.UpdateQuantityRequest;
 import com.example.kibo.models.RemoveCartItemRequest;
+import com.example.kibo.models.ShippingFeeRequest;
+import com.example.kibo.models.ShippingFeeResponse;
+import com.example.kibo.models.UserResponse;
+import com.example.kibo.models.VoucherResponse;
+import com.example.kibo.models.VoucherUseResponse;
+import com.example.kibo.models.ShippingOrderRequest;
+import com.example.kibo.models.ShippingOrderResponse;
+import com.example.kibo.models.ProductImage;
+import com.example.kibo.models.CategoryRequest;
 
 import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.Multipart;
+import retrofit2.http.Part;
+import retrofit2.http.PartMap;
+import retrofit2.http.Path;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
@@ -32,76 +48,181 @@ import retrofit2.http.Query;
 import retrofit2.http.HTTP;
 
 public interface ApiService {
-    
+
     @POST("Auth/login")
     Call<LoginResponse> login(@Body LoginRequest loginRequest);
-    
+
     @POST("Auth/register")
     Call<ApiResponse<String>> register(@Body RegisterRequest registerRequest);
-    
+
     @POST("Auth/verify-otp")
     Call<LoginResponse> verifyOtp(@Body OtpRequest otpRequest);
-    
+
     @POST("Auth/resend-otp")
     Call<ApiResponse<String>> resendOtp(@Body String email);
-    
+
     // Alternative method for login that returns raw response
     @POST("Auth/login")
     Call<Object> loginRaw(@Body LoginRequest loginRequest);
-    
+
     // Get products with pagination
     @GET("Products")
     Call<ProductResponse> getProducts(
         @Query("pageNumber") int pageNumber,
         @Query("pageSize") int pageSize
     );
-    
+
+    // Get products by category with pagination
+    @GET("Products")
+    Call<ProductResponse> getProductsByCategory(
+        @Query("Categoryid") int categoryId,
+        @Query("pageNumber") int pageNumber,
+        @Query("pageSize") int pageSize
+    );
+
     // Get all products without pagination
     @GET("Products")
     Call<ProductResponse> getAllProducts();
-    
+
     // Get product by ID
     @GET("Products")
     Call<ProductResponse> getProductById(@Query("Productid") int productId);
-    
+
+    // Get product detail by ID (direct endpoint)
+    @GET("Products/{id}")
+    Call<Product> getProductDetail(@Path("id") int productId);
+
+    // Get product images
+    @GET("ProductImages/product/{productId}")
+    Call<List<ProductImage>> getProductImages(@Path("productId") int productId);
+
+    // Create product (multipart/form-data) with multiple images
+    @Multipart
+    @POST("Products")
+    Call<ApiResponse<String>> createProduct(
+            @Part("Productname") okhttp3.RequestBody productname,
+            @Part("Briefdescription") okhttp3.RequestBody briefdescription,
+            @Part("Fulldescription") okhttp3.RequestBody fulldescription,
+            @Part("Price") okhttp3.RequestBody price,
+            @Part("Categoryid") okhttp3.RequestBody categoryid,
+            @Part("Connection") okhttp3.RequestBody connection,
+            @Part("Layout") okhttp3.RequestBody layout,
+            @Part("Keycap") okhttp3.RequestBody keycap,
+            @Part("Switch") okhttp3.RequestBody switchType,
+            @Part("Battery") okhttp3.RequestBody battery,
+            @Part("Os") okhttp3.RequestBody os,
+            @Part("Led") okhttp3.RequestBody led,
+            @Part("Screen") okhttp3.RequestBody screen,
+            @Part("Width") okhttp3.RequestBody width,
+            @Part("Length") okhttp3.RequestBody length,
+            @Part("Height") okhttp3.RequestBody height,
+            @Part("Quantity") okhttp3.RequestBody quantity,
+            @Part java.util.List<okhttp3.MultipartBody.Part> ImageFiles);
+
+    // Update product (multipart/form-data) - CHỈNH SỬA ĐỂ NHẬN NHIỀU ẢNH
+    @Multipart
+    @PUT("Products/{id}")
+    Call<ApiResponse<String>> updateProduct(
+            @Path("id") int id,
+            @Part("Productid") okhttp3.RequestBody productid,
+            @Part("Productname") okhttp3.RequestBody productname,
+            @Part("Briefdescription") okhttp3.RequestBody briefdescription,
+            @Part("Fulldescription") okhttp3.RequestBody fulldescription,
+            @Part("Price") okhttp3.RequestBody price,
+            @Part("Categoryid") okhttp3.RequestBody categoryid,
+            @Part("Connection") okhttp3.RequestBody connection,
+            @Part("Layout") okhttp3.RequestBody layout,
+            @Part("Keycap") okhttp3.RequestBody keycap,
+            @Part("Switch") okhttp3.RequestBody switchType,
+            @Part("Battery") okhttp3.RequestBody battery,
+            @Part("Os") okhttp3.RequestBody os,
+            @Part("Led") okhttp3.RequestBody led,
+            @Part("Screen") okhttp3.RequestBody screen,
+            @Part("Width") okhttp3.RequestBody width,
+            @Part("Length") okhttp3.RequestBody length,
+            @Part("Height") okhttp3.RequestBody height,
+            @Part("Quantity") okhttp3.RequestBody quantity,
+            @Part java.util.List<okhttp3.MultipartBody.Part> ImageFiles,
+            @Part("PrimaryImageIndex") okhttp3.RequestBody primaryImageIndex);
+
+    // Delete product
+    @HTTP(method = "DELETE", path = "Products/{id}", hasBody = false)
+    Call<ApiResponse<String>> deleteProduct(@Path("id") int productId);
+
     // Address endpoints
     @GET("Address/provinces")
     Call<List<Province>> getProvinces();
-    
+
     @GET("Address/provinces/{provinceID}/districts")
     Call<List<District>> getDistricts(@Path("provinceID") int provinceID);
-    
+
     @GET("Address/districts/{districtID}/wards")
     Call<List<Ward>> getWards(@Path("districtID") int districtID);
-    
+
     @GET("Address/full-address/{provinceId}/{districtId}/{wardCode}")
     Call<FullAddressResponse> getFullAddress(
-        @Path("provinceId") int provinceId,
-        @Path("districtId") int districtId,
-        @Path("wardCode") String wardCode
-    );
-    
+            @Path("provinceId") int provinceId,
+            @Path("districtId") int districtId,
+            @Path("wardCode") String wardCode);
+
     // Update user
     @PUT("Users/{id}")
     Call<User> updateUser(@Path("id") int userId, @Body UpdateUserRequest updateUserRequest);
-    
+
     // Cart endpoints
     @POST("Carts")
     Call<Cart> createCart(@Body CartRequest cartRequest);
-    
+
     @POST("CartItems/add")
     Call<ApiResponse<String>> addToCart(@Body CartItemRequest cartItemRequest);
-    
+
     @GET("CartItems")
     Call<CartItemsResponse> getCartItems(@Query("Cartid") int cartId);
-    
+
     @PUT("CartItems/update-quantity")
     Call<ApiResponse<String>> updateCartItemQuantity(@Body UpdateQuantityRequest request);
-    
+
     @HTTP(method = "DELETE", path = "CartItems/remove", hasBody = true)
     Call<ApiResponse<String>> removeCartItem(@Body RemoveCartItemRequest request);
-    
+
     // Logout endpoint
     @POST("Auth/logout")
     Call<ApiResponse<String>> logout();
+
+    // Categories for brand dropdown
+    @GET("Categories")
+    Call<CategoryResponse> getCategories();
+
+
+    // Create category
+    @POST("Categories")
+    Call<ApiResponse<Category>> createCategory(@Body CategoryRequest request);
+
+    // Update category
+    @PUT("Categories/{id}")
+    Call<Void> updateCategory(@Path("id") int id, @Body CategoryRequest request);
+
+    // Delete category
+    @HTTP(method = "DELETE", path = "Categories/{id}", hasBody = false)
+    Call<ApiResponse<String>> deleteCategory(@Path("id") int id);
+
+    // Get user by ID
+    @GET("Users")
+    Call<UserResponse> getUserById(@Query("Userid") int userId);
+
+    // Calculate shipping fee
+    @POST("Shipping/fee")
+    Call<ShippingFeeResponse> calculateShippingFee(@Body ShippingFeeRequest request);
+
+    // Get vouchers
+    @GET("Vouchers")
+    Call<VoucherResponse> getVouchers(@Query("isActive") boolean isActive);
+
+    // Use voucher
+    @POST("Vouchers/use/{code}")
+    Call<VoucherUseResponse> useVoucher(@Path("code") String voucherCode, @Body double orderValue);
+
+    // Create shipping order
+    @POST("Shipping/order")
+    Call<ShippingOrderResponse> createShippingOrder(@Body ShippingOrderRequest request);
 }

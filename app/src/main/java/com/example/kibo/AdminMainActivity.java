@@ -11,6 +11,7 @@ import com.example.kibo.R;
 import com.example.kibo.ui.AdminDashboardFragment;
 import com.example.kibo.ui.AdminProductsFragment;
 import com.example.kibo.ui.AdminAccountFragment;
+import com.example.kibo.ui.AdminMessagesFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
@@ -25,6 +26,7 @@ public class AdminMainActivity extends AppCompatActivity {
     private AdminDashboardFragment dashboardFragment;
     private AdminProductsFragment productsFragment;
     private AdminAccountFragment accountFragment;
+    private AdminMessagesFragment messagesFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +42,9 @@ public class AdminMainActivity extends AppCompatActivity {
         
         setupBottomNavigation();
         loadInitialFragment();
+        
+        // Handle intent extras for navigation
+        handleIntentExtras();
     }
 
     private void setupBottomNavigation() {
@@ -60,7 +65,12 @@ public class AdminMainActivity extends AppCompatActivity {
         if (id == R.id.nav_admin_dashboard) {
             selected = dashboardFragment;
         } else if (id == R.id.nav_admin_products) {
-            selected = productsFragment;
+            // Mở AdminManagementActivity với TabLayout
+            Intent intent = new Intent(this, AdminManagementActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.nav_admin_messages) {
+            selected = messagesFragment;
         } else if (id == R.id.nav_admin_account) {
             selected = accountFragment;
         }
@@ -86,6 +96,7 @@ public class AdminMainActivity extends AppCompatActivity {
         dashboardFragment = new AdminDashboardFragment();
         productsFragment = new AdminProductsFragment();
         accountFragment = new AdminAccountFragment();
+        messagesFragment = new AdminMessagesFragment();
     }
     
     // ============ Logout Functionality ============
@@ -140,5 +151,25 @@ public class AdminMainActivity extends AppCompatActivity {
             Toast.makeText(this, "Phiên admin đã hết hạn", Toast.LENGTH_SHORT).show();
             navigateToLogin();
         });
+    }
+    
+    private void handleIntentExtras() {
+        String fragment = getIntent().getStringExtra("fragment");
+        if (fragment != null) {
+            switch (fragment) {
+                case "dashboard":
+                    loadFragment(dashboardFragment);
+                    bottomNav.setSelectedItemId(R.id.nav_admin_dashboard);
+                    break;
+                case "messages":
+                    loadFragment(messagesFragment);
+                    bottomNav.setSelectedItemId(R.id.nav_admin_messages);
+                    break;
+                case "account":
+                    loadFragment(accountFragment);
+                    bottomNav.setSelectedItemId(R.id.nav_admin_account);
+                    break;
+            }
+        }
     }
 }

@@ -9,26 +9,33 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.kibo.R;
 import com.example.kibo.AdminProductFormActivity;
+import com.example.kibo.api.ApiClient;
+import com.example.kibo.api.ApiService;
+import com.example.kibo.models.ProductResponse;
+import com.example.kibo.models.CategoryResponse;
+import com.example.kibo.models.Category;
 import com.example.kibo.adapters.AdminProductAdapter;
 import com.example.kibo.models.Product;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class AdminProductsFragment extends Fragment {
     private RecyclerView rvProducts;
     private EditText etSearch;
-    private ImageButton btnSearch;
-    private FloatingActionButton fabAdd;
+    private ImageButton btnAdd;
     private AdminProductAdapter adapter;
     private List<Product> productList;
+    private List<Category> categoryList;
 
     @Nullable
     @Override
@@ -45,52 +52,25 @@ public class AdminProductsFragment extends Fragment {
     private void setupViews(View view) {
         rvProducts = view.findViewById(R.id.rv_admin_products);
         etSearch = view.findViewById(R.id.et_search_products);
-        btnSearch = view.findViewById(R.id.btn_search);
-        fabAdd = view.findViewById(R.id.fab_add_product);
+        btnAdd = view.findViewById(R.id.btn_add_product);
 
         rvProducts.setLayoutManager(new LinearLayoutManager(getContext()));
     }
 
     private void setupData() {
         productList = new ArrayList<>();
-        createSampleData();
+        categoryList = new ArrayList<>();
 
-        adapter = new AdminProductAdapter(productList, this::onEditClick, this::onDeleteClick);
+        // Khởi tạo adapter với category list
+        adapter = new AdminProductAdapter(productList, categoryList, this::onEditClick, this::onDeleteClick, this::onProductNameClick);
         rvProducts.setAdapter(adapter);
-    }
 
-    private void createSampleData() {
-        // Tạo Product objects với dữ liệu mẫu
-        Product product1 = new Product();
-        product1.setProductId(1);
-        product1.setProductName("Bàn phím cơ Kibo Pro");
-        product1.setPrice(1290000);
-        product1.setBriefDescription("Bàn phím cơ cao cấp với switch Cherry MX");
-        product1.setCategoryName("Bàn phím cơ");
-        product1.setImageUrl("https://example.com/kibo-pro.jpg");
-        productList.add(product1);
-
-        Product product2 = new Product();
-        product2.setProductId(2);
-        product2.setProductName("Bàn phím cơ Kibo RGB");
-        product2.setPrice(1590000);
-        product2.setBriefDescription("Bàn phím cơ với đèn LED RGB đa màu");
-        product2.setCategoryName("Bàn phím cơ");
-        product2.setImageUrl("https://example.com/kibo-rgb.jpg");
-        productList.add(product2);
-
-        Product product3 = new Product();
-        product3.setProductId(3);
-        product3.setProductName("Bàn phím cơ Kibo Wireless");
-        product3.setPrice(1890000);
-        product3.setBriefDescription("Bàn phím cơ không dây tiện lợi");
-        product3.setCategoryName("Bàn phím cơ");
-        product3.setImageUrl("https://example.com/kibo-wireless.jpg");
-        productList.add(product3);
+        // Load categories trước, sau đó load products
+        loadCategories();
     }
 
     private void setupListeners() {
-        fabAdd.setOnClickListener(v -> openProductForm());
+        btnAdd.setOnClickListener(v -> openProductForm());
 
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override
@@ -119,25 +99,193 @@ public class AdminProductsFragment extends Fragment {
     }
 
     private void onDeleteClick(Product product) {
-        // TODO: Hiển thị dialog xác nhận xóa
-        // showDeleteConfirmDialog(product);
+        showDeleteConfirmDialog(product);
+    }
+    
+    private void showDeleteConfirmDialog(Product product) {
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Xóa sản phẩm")
+                .setMessage("Bạn có chắc muốn xóa sản phẩm '" + product.getProductName() + "'?\n\nHành động này không thể hoàn tác!")
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xóa", (dialog, which) -> deleteProduct(product))
+                .show();
+    }
+    
+    private void deleteProduct(Product product) {
+        android.app.ProgressDialog progressDialog = new android.app.ProgressDialog(getContext());
+        progressDialog.setMessage("Đang xóa sản phẩm...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
+        ApiService apiService = ApiClient.getApiService();
+        apiService.deleteProduct(product.getProductId()).enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
+            @Override
+            public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
+                progressDialog.dismiss();
+                if (response.isSuccessful()) {
+                    Toast.makeText(getContext(), "Xóa sản phẩm thành công", Toast.LENGTH_SHORT).show();
+                    // Refresh danh sách sản phẩm
+                    loadProductsFromApi();
+                } else {
+                    Toast.makeText(getContext(), "Xóa sản phẩm thất bại", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
+                progressDialog.dismiss();
+                Toast.makeText(getContext(), "Lỗi mạng khi xóa sản phẩm: " + t.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void onProductNameClick(Product product) {
+        // Hiển thị dialog chi tiết sản phẩm
+        com.example.kibo.dialogs.ProductDetailDialog dialog = 
+            com.example.kibo.dialogs.ProductDetailDialog.newInstance(product.getProductId());
+        dialog.show(getChildFragmentManager(), "ProductDetailDialog");
     }
 
     private void filterProducts(String query) {
         List<Product> filteredList = new ArrayList<>();
-        for (Product product : productList) {
-            if (product.getProductName().toLowerCase().contains(query.toLowerCase())) {
-                filteredList.add(product);
+        if (query.isEmpty()) {
+            filteredList.addAll(productList);
+        } else {
+            for (Product product : productList) {
+                if (product.getProductName().toLowerCase().contains(query.toLowerCase())) {
+                    filteredList.add(product);
+                }
             }
         }
         adapter.filterList(filteredList);
     }
 
-    // TODO: Implement API call
+    // Load categories từ API
+    private void loadCategories() {
+        ApiService apiService = ApiClient.getApiService();
+        apiService.getCategories().enqueue(new retrofit2.Callback<CategoryResponse>() {
+            @Override
+            public void onResponse(retrofit2.Call<CategoryResponse> call, retrofit2.Response<CategoryResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                    categoryList.clear();
+                    categoryList.addAll(response.body().getData());
+
+                    // Update adapter với category list mới
+                    adapter.updateCategoryList(categoryList);
+
+                    // Load products sau khi có categories
+                    loadProductsFromApi();
+
+                    Toast.makeText(getContext(), "Đã tải " + categoryList.size() + " danh mục", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getContext(), "Tải danh mục thất bại", Toast.LENGTH_SHORT).show();
+                    // Vẫn load products dù categories thất bại
+                    loadProductsFromApi();
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<CategoryResponse> call, Throwable t) {
+                Toast.makeText(getContext(), "Lỗi mạng khi tải danh mục", Toast.LENGTH_SHORT).show();
+                // Vẫn load products dù categories thất bại
+                loadProductsFromApi();
+            }
+        });
+    }
+
+    // Load products từ API và bind to adapter
     private void loadProductsFromApi() {
-        // Call API để lấy danh sách sản phẩm
-        // ApiService apiService = ApiClient.getApiService();
-        // Call<ProductResponse> call = apiService.getAdminProducts(1, 50);
-        // ...
+        ApiService apiService = ApiClient.getApiService();
+        apiService.getAllProducts().enqueue(new retrofit2.Callback<ProductResponse>() {
+            @Override
+            public void onResponse(retrofit2.Call<ProductResponse> call, retrofit2.Response<ProductResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<Product> data = response.body().getData();
+                    if (data != null) {
+                        productList.clear();
+                        productList.addAll(data);
+                        
+                        // Kiểm tra nếu có query trong search box thì filter
+                        String currentQuery = etSearch.getText().toString().trim();
+                        if (!currentQuery.isEmpty()) {
+                            filterProducts(currentQuery);
+                        } else {
+                            adapter.filterList(new ArrayList<>(productList));
+                        }
+
+                        Toast.makeText(getContext(), "Đã tải " + productList.size() + " sản phẩm", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), "Không có dữ liệu sản phẩm", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(getContext(), "Tải sản phẩm thất bại", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<ProductResponse> call, Throwable t) {
+                Toast.makeText(getContext(), "Lỗi mạng khi tải sản phẩm", Toast.LENGTH_SHORT).show();
+                t.printStackTrace(); // Log lỗi để debug
+            }
+        });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Refresh danh sách sản phẩm khi quay lại từ form
+        loadProductsFromApi();
+    }
+
+    // Method để refresh toàn bộ data (có thể gọi từ bên ngoài)
+    public void refreshData() {
+        loadCategories();
+    }
+
+    // Method để chỉ refresh products (nhanh hơn)
+    public void refreshProducts() {
+        loadProductsFromApi();
+    }
+
+    // Method để set tên sản phẩm vào ô tìm kiếm
+    public void setSearchQuery(String productName) {
+        if (etSearch != null && productName != null) {
+            etSearch.setText(productName);
+            
+            // Luôn filter ngay lập tức với data hiện có
+            if (productList != null && !productList.isEmpty()) {
+                filterProducts(productName);
+            }
+            
+            // Nếu chưa có data, load lại
+            if (productList == null || productList.isEmpty()) {
+                loadProductsFromApiWithFilter(productName);
+            }
+        }
+    }
+    
+    // Load products với filter sau khi load xong
+    private void loadProductsFromApiWithFilter(String filterQuery) {
+        ApiService apiService = ApiClient.getApiService();
+        apiService.getAllProducts().enqueue(new retrofit2.Callback<ProductResponse>() {
+            @Override
+            public void onResponse(retrofit2.Call<ProductResponse> call, retrofit2.Response<ProductResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<Product> data = response.body().getData();
+                    if (data != null) {
+                        productList.clear();
+                        productList.addAll(data);
+                        
+                        // Filter ngay sau khi load xong
+                        filterProducts(filterQuery);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<ProductResponse> call, Throwable t) {
+                // Không cần làm gì nếu load thất bại
+            }
+        });
     }
 }

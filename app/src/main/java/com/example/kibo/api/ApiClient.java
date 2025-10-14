@@ -4,6 +4,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import java.util.concurrent.TimeUnit;
 import android.content.Context;
 import com.example.kibo.utils.SessionManager;
 
@@ -19,10 +20,18 @@ public class ApiClient {
             HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
             loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-            // Create OkHttp client
-            OkHttpClient okHttpClient = new OkHttpClient.Builder()
-                    .addInterceptor(loggingInterceptor)
-                    .build();
+            // Create OkHttp client with optimized timeouts for image upload
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .addInterceptor(loggingInterceptor)
+                .connectTimeout(15, TimeUnit.SECONDS)      // 15s to connect
+                .readTimeout(90, TimeUnit.SECONDS)         // 90s to read response  
+                .writeTimeout(90, TimeUnit.SECONDS)        // 90s to send data
+                .callTimeout(120, TimeUnit.SECONDS)        // 120s total call timeout
+                .retryOnConnectionFailure(true)            // Retry on connection failure
+                .pingInterval(20, TimeUnit.SECONDS)        // Keep connection alive - giảm interval
+                .protocols(java.util.Arrays.asList(okhttp3.Protocol.HTTP_1_1)) // Force HTTP/1.1 to avoid PROTOCOL_ERROR
+                .connectionPool(new okhttp3.ConnectionPool(10, 5, TimeUnit.MINUTES)) // Tăng connection pool
+                .build();
 
             // Create Retrofit instance
             retrofit = new Retrofit.Builder()
