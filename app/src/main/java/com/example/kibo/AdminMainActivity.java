@@ -95,7 +95,7 @@ public class AdminMainActivity extends AppCompatActivity {
      */
     public void performLogout() {
         if (sessionManager == null) sessionManager = new SessionManager(this);
-        if (apiService == null) apiService = ApiClient.getApiService();
+        apiService = ApiClient.getApiServiceWithAuth(this);
         
         sessionManager.logout(apiService, new SessionManager.LogoutCallback() {
             @Override

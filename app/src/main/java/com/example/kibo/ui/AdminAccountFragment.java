@@ -58,7 +58,12 @@ public class AdminAccountFragment extends Fragment {
         // Check if user is logged in
         if (!sessionManager.isLoggedIn()) {
             // Redirect to login if not logged in
-            navigateToLogin();
+            Intent intent = new Intent(requireContext(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            if (getActivity() != null) {
+                getActivity().finish();
+            }
             return;
         }
         
@@ -100,7 +105,10 @@ public class AdminAccountFragment extends Fragment {
         layoutLogout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                performLogout();
+                // Call AdminMainActivity's performLogout method
+                if (getActivity() instanceof AdminMainActivity) {
+                    ((AdminMainActivity) getActivity()).performLogout();
+                }
             }
         });
     }
@@ -110,26 +118,6 @@ public class AdminAccountFragment extends Fragment {
         startActivity(intent);
     }
     
-    private void performLogout() {
-        // Get AdminMainActivity instance and call its logout method
-        if (getActivity() instanceof AdminMainActivity) {
-            AdminMainActivity adminActivity = (AdminMainActivity) getActivity();
-            adminActivity.performLogout(); // Use the proper logout with API call
-        } else {
-            // Fallback: show confirmation and navigate to login
-            Toast.makeText(requireContext(), "Admin đã đăng xuất", Toast.LENGTH_SHORT).show();
-            navigateToLogin();
-        }
-    }
-    
-    private void navigateToLogin() {
-        Intent intent = new Intent(requireContext(), LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        if (getActivity() != null) {
-            getActivity().finish();
-        }
-    }
     
     @Override
     public void onResume() {

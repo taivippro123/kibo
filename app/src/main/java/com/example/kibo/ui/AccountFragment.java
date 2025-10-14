@@ -11,6 +11,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.kibo.LoginActivity;
+import com.example.kibo.MainActivity;
 import com.example.kibo.PersonalInfoActivity;
 import com.example.kibo.R;
 import com.example.kibo.models.User;
@@ -57,7 +58,12 @@ public class AccountFragment extends Fragment {
         // Check if user is logged in
         if (!sessionManager.isLoggedIn()) {
             // Redirect to login if not logged in
-            navigateToLogin();
+            Intent intent = new Intent(requireContext(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            if (getActivity() != null) {
+                getActivity().finish();
+            }
             return;
         }
         
@@ -104,7 +110,10 @@ public class AccountFragment extends Fragment {
         layoutLogout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                performLogout();
+                // Call MainActivity's performLogout method
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).performLogout();
+                }
             }
         });
     }
@@ -114,25 +123,6 @@ public class AccountFragment extends Fragment {
         startActivity(intent);
     }
     
-    private void performLogout() {
-        // Show confirmation toast
-        Toast.makeText(requireContext(), "Đã đăng xuất", Toast.LENGTH_SHORT).show();
-        
-        // Clear session
-        sessionManager.clearSession();
-        
-        // Navigate to login
-        navigateToLogin();
-    }
-    
-    private void navigateToLogin() {
-        Intent intent = new Intent(requireContext(), LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        if (getActivity() != null) {
-            getActivity().finish();
-        }
-    }
     
     @Override
     public void onResume() {
