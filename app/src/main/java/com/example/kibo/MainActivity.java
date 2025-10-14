@@ -73,6 +73,11 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 if (selected != null) {
+                    // Avoid replacing with the same fragment instance to prevent crashes
+                    Fragment current = getSupportFragmentManager().findFragmentById(R.id.frame_container);
+                    if (current != null && current.getClass().equals(selected.getClass())) {
+                        return true; // already showing
+                    }
                     loadFragment(selected);
                     return true;
                 }

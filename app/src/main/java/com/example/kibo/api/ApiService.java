@@ -30,6 +30,9 @@ import com.example.kibo.models.VoucherUseResponse;
 import com.example.kibo.models.ShippingOrderRequest;
 import com.example.kibo.models.ShippingOrderResponse;
 import com.example.kibo.models.ProductImage;
+import com.example.kibo.models.Order;
+import com.example.kibo.models.OrderDetail;
+import com.example.kibo.models.OrderDetailsResponse;
 import com.example.kibo.models.CategoryRequest;
 
 import java.util.List;
@@ -209,6 +212,13 @@ public interface ApiService {
     // Get user by ID
     @GET("Users")
     Call<UserResponse> getUserById(@Query("Userid") int userId);
+
+    // Orders
+    @GET("Orders")
+    Call<java.util.List<Order>> getOrders(@Query("UserId") int userId);
+
+    @GET("OrderDetails")
+    Call<OrderDetailsResponse> getOrderDetails(@Query("OrderId") int orderId);
 
     // Calculate shipping fee
     @POST("Shipping/fee")
