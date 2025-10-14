@@ -42,19 +42,42 @@ public class ShippingOrderRequest {
     @SerializedName("insuranceValue")
     private int insuranceValue;
     
+    @SerializedName("content")
+    private String content;
+
+    @SerializedName("note")
+    private String note;
+
     @SerializedName("requiredNote")
     private String requiredNote;
+
+    @SerializedName("paymentMethod")
+    private int paymentMethod;
+
+    @SerializedName("shippingFee")
+    private double shippingFee;
     
     @SerializedName("userId")
     private int userId;
     
     @SerializedName("cartId")
     private int cartId;
+
+    @SerializedName("productId")
+    private int productId;
+
+    @SerializedName("productQuantity")
+    private int productQuantity;
     
-    public ShippingOrderRequest(String toName, String toPhone, String toAddress, 
+    public ShippingOrderRequest(String toName, String toPhone, String toAddress,
                                 String toWardCode, int toDistrictId,
                                 int weight, int length, int width, int height,
-                                int userId, int cartId) {
+                                int serviceTypeId, int paymentTypeId,
+                                int codAmount, int insuranceValue,
+                                String content, String note, String requiredNote,
+                                int paymentMethod, double shippingFee,
+                                int userId, int cartId,
+                                int productId, int productQuantity) {
         this.toName = toName;
         this.toPhone = toPhone;
         this.toAddress = toAddress;
@@ -64,13 +87,19 @@ public class ShippingOrderRequest {
         this.length = length;
         this.width = width;
         this.height = height;
-        this.serviceTypeId = 2;
-        this.paymentTypeId = 2;
-        this.codAmount = 0;
-        this.insuranceValue = 0;
-        this.requiredNote = "KHONGCHOXEMHANG";
+        this.serviceTypeId = serviceTypeId;
+        this.paymentTypeId = paymentTypeId;
+        this.codAmount = codAmount;
+        this.insuranceValue = insuranceValue;
+        this.content = content;
+        this.note = note;
+        this.requiredNote = requiredNote;
+        this.paymentMethod = paymentMethod;
+        this.shippingFee = shippingFee;
         this.userId = userId;
         this.cartId = cartId;
+        this.productId = productId;
+        this.productQuantity = productQuantity;
     }
     
     // Getters and setters
@@ -178,13 +207,8 @@ public class ShippingOrderRequest {
         this.insuranceValue = insuranceValue;
     }
     
-    public String getRequiredNote() {
-        return requiredNote;
-    }
-    
-    public void setRequiredNote(String requiredNote) {
-        this.requiredNote = requiredNote;
-    }
+    public String getRequiredNote() { return requiredNote; }
+    public void setRequiredNote(String requiredNote) { this.requiredNote = requiredNote; }
     
     public int getUserId() {
         return userId;
@@ -201,5 +225,23 @@ public class ShippingOrderRequest {
     public void setCartId(int cartId) {
         this.cartId = cartId;
     }
+
+    public int getProductId() { return productId; }
+    public void setProductId(int productId) { this.productId = productId; }
+
+    public int getProductQuantity() { return productQuantity; }
+    public void setProductQuantity(int productQuantity) { this.productQuantity = productQuantity; }
+
+    public int getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(int paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public double getShippingFee() { return shippingFee; }
+    public void setShippingFee(double shippingFee) { this.shippingFee = shippingFee; }
+
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+
+    public String getNote() { return note; }
+    public void setNote(String note) { this.note = note; }
 }
 
