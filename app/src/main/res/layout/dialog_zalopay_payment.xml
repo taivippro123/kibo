@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@android:color/white">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Thanh toán ZaloPay"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Quét mã QR để thanh toán"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- QR Code ImageView -->
+    <ImageView
+        android:id="@+id/image_qr_code"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_gravity="center"
+        android:scaleType="fitCenter"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="QR Code for payment"/>
+
+    <!-- Payment Amount -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="8dp">
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Số tiền: "
+            android:textSize="16sp"
+            android:textColor="#666666"/>
+        
+        <TextView
+            android:id="@+id/text_payment_amount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0đ"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#0068FF"/>
+    </LinearLayout>
+
+    <!-- Order Code -->
+    <TextView
+        android:id="@+id/text_order_code"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Mã đơn hàng: "
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Open in Browser Button -->
+    <Button
+        android:id="@+id/button_open_browser"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Mở trên trình duyệt"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#0068FF"
+        android:textAllCaps="false"
+        android:padding="12dp"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Cancel Button -->
+    <Button
+        android:id="@+id/button_cancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Hủy"
+        android:textColor="#666666"
+        android:background="?attr/selectableItemBackground"
+        android:textAllCaps="false"
+        android:padding="12dp"/>
+
+    <!-- Status Text -->
+    <TextView
+        android:id="@+id/text_payment_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Đang chờ thanh toán..."
+        android:textSize="12sp"
+        android:textColor="#999999"
+        android:gravity="center"
+        android:layout_marginTop="8dp"/>
+
+</LinearLayout>
+
