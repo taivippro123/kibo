@@ -235,4 +235,8 @@ public interface ApiService {
     // Create shipping order
     @POST("Shipping/order")
     Call<ShippingOrderResponse> createShippingOrder(@Body ShippingOrderRequest request);
+    
+    // Check payment status
+    @GET("Payments")
+    Call<java.util.List<com.example.kibo.models.Payment>> getPaymentStatus(@Query("PaymentId") int paymentId);
 }
