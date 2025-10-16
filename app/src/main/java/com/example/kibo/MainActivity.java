@@ -11,6 +11,7 @@ import com.example.kibo.ui.AccountFragment;
 import com.example.kibo.ui.CartFragment;
 import com.example.kibo.ui.HomeFragment;
 import com.example.kibo.ui.OrdersFragment;
+import com.example.kibo.models.User;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.badge.BadgeDrawable;
 import androidx.core.content.ContextCompat;
@@ -45,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
         apiService = ApiClient.getApiService();
         sessionManager = new SessionManager(this);
         
+        // Menu is already set via XML (app:menu in activity_main.xml), avoid inflating again
+        
         // Initialize fragments
         initializeFragments();
 
@@ -62,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
                 Fragment selected = null;
                 int id = item.getItemId();
 
+                // Regular user navigation only
                 if (id == R.id.nav_home) {
                     selected = homeFragment;
                 } else if (id == R.id.nav_orders) {
@@ -89,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
         // Refresh cart badge immediately on launch (e.g., right after login)
         refreshCartBadge();
     }
+
 
     private void loadFragment(Fragment fragment) {
         getSupportFragmentManager()

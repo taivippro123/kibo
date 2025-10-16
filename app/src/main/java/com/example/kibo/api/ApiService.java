@@ -34,6 +34,11 @@ import com.example.kibo.models.Order;
 import com.example.kibo.models.OrderDetail;
 import com.example.kibo.models.OrderDetailsResponse;
 import com.example.kibo.models.CategoryRequest;
+import com.example.kibo.models.ChatMessage;
+import com.example.kibo.models.Conversation;
+import com.example.kibo.models.SendChatMessageRequest;
+import com.example.kibo.models.PaginationResponse;
+import com.example.kibo.models.ConversationResponse;
 
 import java.util.List;
 
@@ -235,4 +240,56 @@ public interface ApiService {
     // Create shipping order
     @POST("Shipping/order")
     Call<ShippingOrderResponse> createShippingOrder(@Body ShippingOrderRequest request);
+
+    // Chat endpoints
+    @POST("Conversations/start")
+    Call<Conversation> startConversation();
+
+    @GET("Conversations")
+    Call<PaginationResponse<Conversation>> getConversations(
+        @Query("page") int page,
+        @Query("pageSize") int pageSize
+    );
+
+    @GET("ChatMessages")
+    Call<PaginationResponse<ChatMessage>> getChatMessages(
+        @Query("page") int page,
+        @Query("pageSize") int pageSize
+    );
+
+    @GET("ChatMessages/conversation/{conversationId}")
+    Call<PaginationResponse<ChatMessage>> getMessagesByConversation(
+        @Path("conversationId") int conversationId,
+        @Query("page") int page,
+        @Query("pageSize") int pageSize
+    );
+
+    @POST("ChatMessages")
+    Call<ChatMessage> sendChatMessage(@Body SendChatMessageRequest request);
+
+    @HTTP(method = "DELETE", path = "ChatMessages/{messageId}", hasBody = false)
+    Call<ApiResponse<String>> deleteChatMessage(@Path("messageId") int messageId);
+
+    // Admin chat endpoints - sử dụng endpoint Conversations với admin role
+    @GET("Conversations")
+    Call<PaginationResponse<ConversationResponse>> getAllConversations(
+        @Query("page") int page,
+        @Query("pageSize") int pageSize
+    );
+
+    @GET("admin/AdminChat/conversations/{conversationId}/messages")
+    Call<PaginationResponse<ChatMessage>> getConversationMessages(
+        @Path("conversationId") int conversationId,
+        @Query("page") int page,
+        @Query("pageSize") int pageSize
+    );
+
+    @POST("admin/AdminChat/conversations/{conversationId}/messages")
+    Call<ChatMessage> sendMessageToCustomer(
+        @Path("conversationId") int conversationId,
+        @Body SendChatMessageRequest request
+    );
+
+    @HTTP(method = "DELETE", path = "admin/AdminChat/messages/{messageId}", hasBody = false)
+    Call<ApiResponse<String>> deleteMessage(@Path("messageId") int messageId);
 }

@@ -4,6 +4,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.util.concurrent.TimeUnit;
 import android.content.Context;
 import com.example.kibo.utils.SessionManager;
@@ -33,11 +35,16 @@ public class ApiClient {
                 .connectionPool(new okhttp3.ConnectionPool(10, 5, TimeUnit.MINUTES)) // Tăng connection pool
                 .build();
 
+            // Configure Gson to parse ISO8601 with fractional seconds
+            Gson gson = new GsonBuilder()
+                    .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                    .create();
+
             // Create Retrofit instance
             retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
                     .client(okHttpClient)
-                    .addConverterFactory(GsonConverterFactory.create())
+                    .addConverterFactory(GsonConverterFactory.create(gson))
                     .build();
         }
         return retrofit;
@@ -70,11 +77,16 @@ public class ApiClient {
                 .addInterceptor(loggingInterceptor)
                 .build();
 
+        // Configure Gson to parse ISO8601 with fractional seconds
+        Gson gson = new GsonBuilder()
+                .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+                .create();
+
         // Create Retrofit instance
         return new Retrofit.Builder()
                 .baseUrl(BASE_URL)
                 .client(okHttpClient)
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(gson))
                 .build();
     }
 

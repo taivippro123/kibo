@@ -45,4 +45,8 @@
     <color name="primary_red">#E30019</color>
     <color name="light_gray">#F5F5F5</color>
     <color name="warning_color">#FF9800</color>
+    
+    <!-- Missing colors for admin chat -->
+    <color name="border_gray">#E0E0E0</color>
+    <color name="light_green">#C8E6C9</color>
 </resources>

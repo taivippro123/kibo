@@ -70,7 +70,10 @@ public class AdminMainActivity extends AppCompatActivity {
             startActivity(intent);
             return true;
         } else if (id == R.id.nav_admin_messages) {
-            selected = messagesFragment;
+            // Mở AdminChatListActivity
+            Intent intent = new Intent(this, AdminChatListActivity.class);
+            startActivity(intent);
+            return true;
         } else if (id == R.id.nav_admin_account) {
             selected = accountFragment;
         }

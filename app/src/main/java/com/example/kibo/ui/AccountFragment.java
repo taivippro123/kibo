@@ -10,6 +10,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.kibo.AdminChatListActivity;
+import com.example.kibo.ChatActivity;
 import com.example.kibo.LoginActivity;
 import com.example.kibo.MainActivity;
 import com.example.kibo.PersonalInfoActivity;
@@ -24,6 +26,8 @@ public class AccountFragment extends Fragment {
     private TextView textViewUserEmail;
     private TextView textViewUserRole;
     private LinearLayout layoutPersonalInfo;
+    private LinearLayout layoutChatSupport;
+    private LinearLayout layoutAdminChatManagement;
     private LinearLayout layoutLogout;
     
     @Override
@@ -51,6 +55,8 @@ public class AccountFragment extends Fragment {
         textViewUserEmail = view.findViewById(R.id.text_view_user_email);
         textViewUserRole = view.findViewById(R.id.text_view_user_role);
         layoutPersonalInfo = view.findViewById(R.id.layout_personal_info);
+        layoutChatSupport = view.findViewById(R.id.layout_chat_support);
+        layoutAdminChatManagement = view.findViewById(R.id.layout_admin_chat_management);
         layoutLogout = view.findViewById(R.id.layout_logout);
     }
     
@@ -94,6 +100,33 @@ public class AccountFragment extends Fragment {
             } else {
                 textViewUserRole.setText("Khách hàng");
             }
+            
+            // Show/hide admin chat management based on role
+            // Check both role number and role name for admin
+            boolean isAdmin = (user.getRole() == 0) || 
+                             (roleName != null && roleName.toLowerCase().contains("admin"));
+            
+            System.out.println("=== ADMIN DETECTION DEBUG ===");
+            System.out.println("User Role: " + user.getRole());
+            System.out.println("Role Name: " + roleName);
+            System.out.println("Is Admin: " + isAdmin);
+            System.out.println("Layout Admin Chat Management: " + (layoutAdminChatManagement != null ? "NOT NULL" : "NULL"));
+            
+            if (isAdmin) {
+                if (layoutAdminChatManagement != null) {
+                    layoutAdminChatManagement.setVisibility(View.VISIBLE);
+                    System.out.println("Admin detected - showing chat management option");
+                } else {
+                    System.out.println("ERROR: layoutAdminChatManagement is NULL!");
+                }
+            } else {
+                if (layoutAdminChatManagement != null) {
+                    layoutAdminChatManagement.setVisibility(View.GONE);
+                    System.out.println("Not admin - hiding chat management option");
+                } else {
+                    System.out.println("ERROR: layoutAdminChatManagement is NULL!");
+                }
+            }
         }
     }
     
@@ -103,6 +136,22 @@ public class AccountFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 openPersonalInfo();
+            }
+        });
+        
+        // Chat Support click listener
+        layoutChatSupport.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openChatSupport();
+            }
+        });
+        
+        // Admin Chat Management click listener
+        layoutAdminChatManagement.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openAdminChatManagement();
             }
         });
         
@@ -120,6 +169,16 @@ public class AccountFragment extends Fragment {
     
     private void openPersonalInfo() {
         Intent intent = new Intent(requireContext(), PersonalInfoActivity.class);
+        startActivity(intent);
+    }
+    
+    private void openChatSupport() {
+        Intent intent = new Intent(requireContext(), ChatActivity.class);
+        startActivity(intent);
+    }
+    
+    private void openAdminChatManagement() {
+        Intent intent = new Intent(requireContext(), AdminChatListActivity.class);
         startActivity(intent);
     }
     
