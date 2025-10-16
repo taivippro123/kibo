@@ -83,6 +83,23 @@
                 android:text="Mã đơn: ABC123"
                 android:textColor="@color/gray_dark"
                 android:layout_marginTop="4dp"/>
+
+            <!-- Payment method and status -->
+            <TextView
+                android:id="@+id/tv_payment_method"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Phương thức: "
+                android:textColor="@color/gray_dark"
+                android:layout_marginTop="4dp"/>
+
+            <TextView
+                android:id="@+id/tv_payment_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Trạng thái: "
+                android:textColor="@color/gray_dark"
+                android:layout_marginTop="2dp"/>
         </LinearLayout>
 
         

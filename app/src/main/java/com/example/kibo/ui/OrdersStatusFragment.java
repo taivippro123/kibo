@@ -22,6 +22,7 @@ import com.example.kibo.utils.SessionManager;
 import com.bumptech.glide.Glide;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.view.View;
 
 public class OrdersStatusFragment extends Fragment {
     private static final String ARG_STATUS = "status";
@@ -109,6 +110,42 @@ public class OrdersStatusFragment extends Fragment {
 
                 @Override public void onFailure(retrofit2.Call<OrderDetailsResponse> call, Throwable t) { }
             });
+
+            // Payment info: fetch by paymentId if present
+            Integer paymentId = o.getPaymentId();
+            if (paymentId != null && paymentId > 0) {
+                api.getPaymentStatus(paymentId).enqueue(new retrofit2.Callback<java.util.List<com.example.kibo.models.Payment>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<java.util.List<com.example.kibo.models.Payment>> call, retrofit2.Response<java.util.List<com.example.kibo.models.Payment>> response) {
+                        if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                            com.example.kibo.models.Payment p = response.body().get(0);
+                            int method = p.getPaymentMethod();
+                            int status = p.getPaymentStatus();
+
+                            // Filter rules
+                            boolean shouldShow = (method == 1 && status == 1) || (method == 2);
+
+                            holder.itemView.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
+                            RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) holder.itemView.getLayoutParams();
+                            if (params != null) {
+                                params.height = shouldShow ? RecyclerView.LayoutParams.WRAP_CONTENT : 0;
+                                holder.itemView.setLayoutParams(params);
+                            }
+
+                            // Bind method and status text
+                            String methodText = method == 1 ? "ZaloPay" : method == 2 ? "Tiền mặt" : ("Khác (" + method + ")");
+                            String statusText = status == 1 ? "Đã thanh toán" : "Chưa thanh toán";
+                            holder.tvPaymentMethod.setText("Phương thức thanh toán: " + methodText);
+                            holder.tvPaymentStatus.setText("Trạng thái: " + statusText);
+                        }
+                    }
+
+                    @Override public void onFailure(retrofit2.Call<java.util.List<com.example.kibo.models.Payment>> call, Throwable t) { }
+                });
+            } else {
+                holder.tvPaymentMethod.setText("Phương thức thanh toán: N/A");
+                holder.tvPaymentStatus.setText("Trạng thái: Chưa thanh toán");
+            }
         }
 
         @Override public int getItemCount() { return orders.size(); }
@@ -121,6 +158,8 @@ public class OrdersStatusFragment extends Fragment {
         TextView tvStatus;
         TextView tvOrderCode;
         TextView tvQuantity;
+        TextView tvPaymentMethod;
+        TextView tvPaymentStatus;
 
         OrderVH(@NonNull View itemView) {
             super(itemView);
@@ -130,6 +169,8 @@ public class OrdersStatusFragment extends Fragment {
             tvStatus = itemView.findViewById(R.id.tv_order_status);
             tvOrderCode = itemView.findViewById(R.id.tv_order_code);
             tvQuantity = itemView.findViewById(R.id.tv_quantity);
+            tvPaymentMethod = itemView.findViewById(R.id.tv_payment_method);
+            tvPaymentStatus = itemView.findViewById(R.id.tv_payment_status);
         }
     }
 }
