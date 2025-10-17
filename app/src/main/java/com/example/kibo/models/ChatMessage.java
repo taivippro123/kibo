@@ -7,10 +7,10 @@ public class ChatMessage {
     private int chatMessageId;
     
     @SerializedName("conversationid")
-    private Integer conversationId;
+    private int conversationId;
     
     @SerializedName("senderid")
-    private Integer senderId;
+    private int senderId;
     
     @SerializedName("senderName")
     private String senderName;
@@ -47,19 +47,19 @@ public class ChatMessage {
         this.chatMessageId = chatMessageId;
     }
 
-    public Integer getConversationId() {
+    public int getConversationId() {
         return conversationId;
     }
 
-    public void setConversationId(Integer conversationId) {
+    public void setConversationId(int conversationId) {
         this.conversationId = conversationId;
     }
 
-    public Integer getSenderId() {
+    public int getSenderId() {
         return senderId;
     }
 
-    public void setSenderId(Integer senderId) {
+    public void setSenderId(int senderId) {
         this.senderId = senderId;
     }
 

@@ -1,6 +1,7 @@
 package com.example.kibo.adapters;
 
 import android.content.Context;
+import android.graphics.Typeface;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,6 +62,50 @@ public class AdminConversationAdapter extends RecyclerView.Adapter<AdminConversa
         }
     }
 
+    @Override
+    public void onBindViewHolder(@NonNull ConversationViewHolder holder, int position, @NonNull List<Object> payloads) {
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position);
+        } else {
+            // Silent update without animation
+            ConversationResponse conversation = conversations.get(position);
+            holder.bind(conversation);
+        }
+    }
+
+    public void updateConversationMessage(int conversationId, String lastMessage, String sentAt) {
+        for (int i = 0; i < conversations.size(); i++) {
+            if (conversations.get(i).getConversationid() == conversationId) {
+                ConversationResponse conv = conversations.get(i);
+                // Update last message smoothly
+                if (conv.getLastMessages() == null) {
+                    conv.setLastMessages(new java.util.ArrayList<>());
+                }
+                conv.getLastMessages().clear();
+
+                com.example.kibo.models.ChatMessage preview = new com.example.kibo.models.ChatMessage();
+                preview.setMessage(lastMessage);
+                preview.setSentAt(sentAt);
+                conv.getLastMessages().add(preview);
+
+                // Update timestamp
+                try {
+                    java.util.Date now = new java.util.Date();
+                    conv.setLastMessageTime(now);
+                } catch (Exception ignored) {}
+
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
+
+    // Add new conversation to top (like ChatMessageAdapter.addMessage)
+    public void addConversationToTop(ConversationResponse conversation) {
+        conversations.add(0, conversation);
+        notifyItemInserted(0);
+    }
+
     @NonNull
     @Override
     public ConversationViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -82,7 +127,6 @@ public class AdminConversationAdapter extends RecyclerView.Adapter<AdminConversa
     class ConversationViewHolder extends RecyclerView.ViewHolder {
         private ImageView ivCustomerAvatar;
         private TextView tvCustomerName;
-        private TextView tvCustomerEmail;
         private TextView tvLastMessage;
         private TextView tvLastMessageTime;
         private TextView tvUnreadCount;
@@ -91,7 +135,6 @@ public class AdminConversationAdapter extends RecyclerView.Adapter<AdminConversa
             super(itemView);
             ivCustomerAvatar = itemView.findViewById(R.id.iv_customer_avatar);
             tvCustomerName = itemView.findViewById(R.id.tv_customer_name);
-            tvCustomerEmail = itemView.findViewById(R.id.tv_customer_email);
             tvLastMessage = itemView.findViewById(R.id.tv_last_message);
             tvLastMessageTime = itemView.findViewById(R.id.tv_last_message_time);
             tvUnreadCount = itemView.findViewById(R.id.tv_unread_count);
@@ -109,34 +152,66 @@ public class AdminConversationAdapter extends RecyclerView.Adapter<AdminConversa
         public void bind(ConversationResponse conversation) {
             tvCustomerName.setText(conversation.getCustomerName() != null ? 
                 conversation.getCustomerName() : "Khách hàng");
-            tvCustomerEmail.setText("ID: " + (conversation.getCustomerid() != null ? 
-                conversation.getCustomerid() : "N/A"));
 
-            // Set last message from lastMessages list
+            // Compute latest preview from lastMessages by sentAt, fall back to conversation timestamps
             String lastMessageText = "Chưa có tin nhắn nào";
+            Date latest = conversation.getLastMessageTime();
             if (conversation.getLastMessages() != null && !conversation.getLastMessages().isEmpty()) {
-                // Get the last message from the list
-                var lastMessage = conversation.getLastMessages().get(conversation.getLastMessages().size() - 1);
-                if (lastMessage != null && lastMessage.getMessage() != null) {
-                    lastMessageText = lastMessage.getMessage();
+                Date bestTime = null;
+                String bestText = null;
+                for (com.example.kibo.models.ChatMessage m : conversation.getLastMessages()) {
+                    if (m == null) continue;
+                    String sent = m.getSentAt();
+                    Date parsed = null;
+                    if (sent != null) {
+                        try {
+                            parsed = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", java.util.Locale.getDefault()).parse(sent);
+                        } catch (Exception ignore) {
+                            try {
+                                parsed = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).parse(sent);
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                    if (parsed != null && (bestTime == null || parsed.after(bestTime))) {
+                        bestTime = parsed;
+                        bestText = m.getMessage();
+                    }
                 }
+                if (bestText != null) lastMessageText = bestText;
+                if (bestTime != null) latest = bestTime;
             }
             tvLastMessage.setText(lastMessageText);
 
-            // Set last message time
-            if (conversation.getLastMessageTime() != null) {
-                tvLastMessageTime.setText(timeFormat.format(conversation.getLastMessageTime()));
+            // Show latest time
+            if (latest != null) {
+                tvLastMessageTime.setText(timeFormat.format(latest));
             } else if (conversation.getCreatedat() != null) {
                 tvLastMessageTime.setText(timeFormat.format(conversation.getCreatedat()));
             } else {
                 tvLastMessageTime.setText("");
             }
 
-            // Set unread count - using hasUnreadMessages flag
+            // Set highlighting for new messages
             if (conversation.isHasUnreadMessages()) {
+                // Highlight new message with bold black text
+                tvLastMessage.setTextColor(context.getResources().getColor(android.R.color.black));
+                tvLastMessage.setTypeface(tvLastMessage.getTypeface(), android.graphics.Typeface.BOLD);
+                
+                // Highlight time with bold black text
+                tvLastMessageTime.setTextColor(context.getResources().getColor(android.R.color.black));
+                tvLastMessageTime.setTypeface(tvLastMessageTime.getTypeface(), android.graphics.Typeface.BOLD);
+                
+                // Show unread indicator - small circle without text
                 tvUnreadCount.setVisibility(View.VISIBLE);
-                tvUnreadCount.setText("!"); // Show exclamation mark for unread
+                tvUnreadCount.setText(""); // Empty text, just show the circle background
             } else {
+                // Reset to original layout appearance
+                tvLastMessage.setTextColor(context.getResources().getColor(R.color.text_secondary));
+                tvLastMessage.setTypeface(null, android.graphics.Typeface.NORMAL);
+                
+                tvLastMessageTime.setTextColor(context.getResources().getColor(R.color.text_secondary));
+                tvLastMessageTime.setTypeface(null, android.graphics.Typeface.NORMAL);
+                
                 tvUnreadCount.setVisibility(View.GONE);
             }
 
