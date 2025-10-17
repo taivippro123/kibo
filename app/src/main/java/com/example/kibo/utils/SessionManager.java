@@ -278,7 +278,7 @@ public class SessionManager {
      * Check if user is an admin (role = 2)
      */
     public boolean isAdmin() {
-        return getUserRole() == 2;
+        return getUserRole() == 0;
     }
     
     // ============ Cart Methods ============

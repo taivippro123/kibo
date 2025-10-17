@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="32dp"
+    android:background="@android:color/white"
+    android:gravity="center">
+
+    <!-- Success Icon (Green Check) -->
+    <ImageView
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_check_circle"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="Success icon"/>
+
+    <!-- Success Text -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Thanh toán thành công!"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#4CAF50"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Success Message -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Đơn hàng của bạn đã được thanh toán thành công"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- View Order Button -->
+    <Button
+        android:id="@+id/button_view_order"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Xem đơn hàng"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#4CAF50"
+        android:textAllCaps="false"
+        android:textSize="16sp"
+        android:padding="14dp"/>
+
+</LinearLayout>
+

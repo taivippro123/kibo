@@ -86,6 +86,12 @@
             android:exported="false"
             android:label="Chọn mã giảm giá"
             android:theme="@style/Theme.Kibo" />
+            
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false"
+            android:label="Chat với Shop"
+            android:theme="@style/Theme.Kibo" />
 
         <!-- Admin Activities -->
         <activity
@@ -104,6 +110,18 @@
             android:name=".AdminManagementActivity"
             android:exported="false"
             android:label="Quản lý Admin"
+            android:theme="@style/Theme.Kibo" />
+
+        <activity
+            android:name=".AdminChatListActivity"
+            android:exported="false"
+            android:label="Quản lý tin nhắn"
+            android:theme="@style/Theme.Kibo" />
+
+        <activity
+            android:name=".AdminChatDetailActivity"
+            android:exported="false"
+            android:label="Chat với khách hàng"
             android:theme="@style/Theme.Kibo" />
     </application>
 
