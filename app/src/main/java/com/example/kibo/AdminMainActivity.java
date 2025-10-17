@@ -70,7 +70,10 @@ public class AdminMainActivity extends AppCompatActivity {
             startActivity(intent);
             return true;
         } else if (id == R.id.nav_admin_messages) {
-            selected = messagesFragment;
+            // Mở AdminChatListActivity
+            Intent intent = new Intent(this, AdminChatListActivity.class);
+            startActivity(intent);
+            return true;
         } else if (id == R.id.nav_admin_account) {
             selected = accountFragment;
         }
@@ -106,7 +109,7 @@ public class AdminMainActivity extends AppCompatActivity {
      */
     public void performLogout() {
         if (sessionManager == null) sessionManager = new SessionManager(this);
-        if (apiService == null) apiService = ApiClient.getApiService();
+        apiService = ApiClient.getApiServiceWithAuth(this);
         
         sessionManager.logout(apiService, new SessionManager.LogoutCallback() {
             @Override

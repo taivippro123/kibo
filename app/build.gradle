@@ -52,4 +52,14 @@ dependencies {
     // Add Dependency for Glide
     implementation 'com.github.bumptech.glide:glide:4.15.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.15.1'
+    
+    // QR Code generation
+    implementation 'com.google.zxing:core:3.5.2'
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+    
+    // CircleImageView for circular avatars
+    implementation 'de.hdodenhof:circleimageview:3.1.0'
+
+    // SignalR Java client for realtime chat
+    implementation 'com.microsoft.signalr:signalr:8.0.6'
 }

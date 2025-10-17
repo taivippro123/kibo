@@ -15,6 +15,8 @@ public class Order {
     private int orderStatus;
     @SerializedName("orderdate")
     private String orderDate;
+    @SerializedName("paymentid")
+    private Integer paymentId;
 
     public int getOrderId() { return orderId; }
     public String getOrderCode() { return orderCode; }
@@ -22,6 +24,7 @@ public class Order {
     public int getUserId() { return userId; }
     public int getOrderStatus() { return orderStatus; }
     public String getOrderDate() { return orderDate; }
+    public Integer getPaymentId() { return paymentId; }
 }
 
 
