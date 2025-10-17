@@ -310,6 +310,9 @@ public class AdminChatDetailActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onConversationUpdated(int conversationId, String lastMessage, String sentAt, int senderId) { }
+
+            @Override
             public void onConnected() { }
 
             @Override

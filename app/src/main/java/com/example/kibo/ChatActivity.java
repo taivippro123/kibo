@@ -251,7 +251,8 @@ public class ChatActivity extends AppCompatActivity {
         request.setSenderId(currentUserId);
 
         // Log for debugging
-        System.out.println("Sending message: " + messageText + " to conversation: " + conversationId);
+        System.out.println("DEBUG: Sending message - ConversationId: " + conversationId + ", SenderId: " + currentUserId + ", Message: " + messageText);
+        System.out.println("DEBUG: Request object - ConversationId: " + request.getConversationId() + ", SenderId: " + request.getSenderId() + ", Message: " + request.getMessage());
 
         Call<ChatMessage> call = apiService.sendChatMessage(request);
         call.enqueue(new Callback<ChatMessage>() {
@@ -400,6 +401,9 @@ public class ChatActivity extends AppCompatActivity {
                     rvChatMessages.scrollToPosition(messages.size() - 1);
                 });
             }
+
+            @Override
+            public void onConversationUpdated(int conversationId, String lastMessage, String sentAt, int senderId) { }
 
             @Override
             public void onConnected() {

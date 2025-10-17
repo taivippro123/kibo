@@ -58,7 +58,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             // In admin/shop perspective, show shop messages on the "user" side variable for reuse
             isFromUser = message.isFromShop();
         } else {
-            isFromUser = message.getSenderId() != null && message.getSenderId() == currentUserId;
+            isFromUser = message.getSenderId() == currentUserId;
         }
         
         // Debug log
