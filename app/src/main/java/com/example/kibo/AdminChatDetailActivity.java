@@ -253,13 +253,15 @@ public class AdminChatDetailActivity extends AppCompatActivity {
                     sentMessage.setFromShop(true); // This is from shop/admin
                     sentMessage.setSenderName("Shop");
                     
-                    // Add message to adapter
-                    messageAdapter.addMessage(sentMessage);
-                    
-                    // Scroll to bottom
-                    rvAdminMessages.post(() -> {
-                        rvAdminMessages.scrollToPosition(messages.size() - 1);
-                    });
+                    // Only add message if SignalR is not connected (to avoid duplicates)
+                    if (signalRManager == null || !signalRManager.isConnected()) {
+                        messageAdapter.addMessage(sentMessage);
+                        
+                        // Scroll to bottom
+                        rvAdminMessages.post(() -> {
+                            rvAdminMessages.scrollToPosition(messages.size() - 1);
+                        });
+                    }
                     
                     Toast.makeText(AdminChatDetailActivity.this, "Tin nhắn đã gửi", Toast.LENGTH_SHORT).show();
                 } else {

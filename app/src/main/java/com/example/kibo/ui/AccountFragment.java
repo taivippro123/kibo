@@ -15,6 +15,7 @@ import com.example.kibo.ChatActivity;
 import com.example.kibo.LoginActivity;
 import com.example.kibo.MainActivity;
 import com.example.kibo.PersonalInfoActivity;
+import com.example.kibo.ShopMapActivity;
 import com.example.kibo.R;
 import com.example.kibo.models.User;
 import com.example.kibo.utils.SessionManager;
@@ -27,6 +28,7 @@ public class AccountFragment extends Fragment {
     private TextView textViewUserRole;
     private LinearLayout layoutPersonalInfo;
     private LinearLayout layoutChatSupport;
+    private LinearLayout layoutShopMap;
     private LinearLayout layoutAdminChatManagement;
     private LinearLayout layoutLogout;
     
@@ -56,6 +58,7 @@ public class AccountFragment extends Fragment {
         textViewUserRole = view.findViewById(R.id.text_view_user_role);
         layoutPersonalInfo = view.findViewById(R.id.layout_personal_info);
         layoutChatSupport = view.findViewById(R.id.layout_chat_support);
+        layoutShopMap = view.findViewById(R.id.layout_shop_map);
         layoutAdminChatManagement = view.findViewById(R.id.layout_admin_chat_management);
         layoutLogout = view.findViewById(R.id.layout_logout);
     }
@@ -146,6 +149,14 @@ public class AccountFragment extends Fragment {
                 openChatSupport();
             }
         });
+
+        // Shop Map click listener
+        layoutShopMap.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openShopMap();
+            }
+        });
         
         // Admin Chat Management click listener
         layoutAdminChatManagement.setOnClickListener(new View.OnClickListener() {
@@ -182,6 +193,10 @@ public class AccountFragment extends Fragment {
         startActivity(intent);
     }
     
+    private void openShopMap() {
+        Intent intent = new Intent(requireContext(), ShopMapActivity.class);
+        startActivity(intent);
+    }
     
     @Override
     public void onResume() {

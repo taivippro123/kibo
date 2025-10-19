@@ -39,6 +39,8 @@ import com.example.kibo.models.Conversation;
 import com.example.kibo.models.SendChatMessageRequest;
 import com.example.kibo.models.PaginationResponse;
 import com.example.kibo.models.ConversationResponse;
+import com.example.kibo.models.StoreLocationsResponse;
+import com.example.kibo.models.StoreLocation;
 
 import java.util.List;
 
@@ -296,4 +298,16 @@ public interface ApiService {
 
     @HTTP(method = "DELETE", path = "admin/AdminChat/messages/{messageId}", hasBody = false)
     Call<ApiResponse<String>> deleteMessage(@Path("messageId") int messageId);
+
+    // Store locations
+    @GET("StoreLocations")
+    Call<StoreLocationsResponse> getStoreLocations(
+        @Query("Page") int page,
+        @Query("PageSize") int pageSize
+    );
+
+    @GET("StoreLocations")
+    Call<StoreLocationsResponse> getStoreLocationById(@Query("Locationid") int locationId,
+                                                      @Query("Page") int page,
+                                                      @Query("PageSize") int pageSize);
 }

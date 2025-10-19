@@ -25,4 +25,7 @@
     <string name="sample_category_name">Danh mục sản phẩm</string>
     <string name="sample_price">1.290.000 đ</string>
     <string name="sample_stock">Tồn kho: 25</string>
+
+    <!-- Google Maps API key placeholder; replace via manifest meta-data or local.properties at build time -->
+    <string name="google_maps_key" translatable="false">AIzaSyDCmfqHLLjNsu-CBqx8YZOsvu14YDYrajE</string>
 </resources>
