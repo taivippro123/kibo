@@ -30,6 +30,9 @@ public class ChatMessage {
     @SerializedName("isFromShop")
     private boolean isFromShop;
 
+    @SerializedName("isRead")
+    private boolean isRead;
+
     // Constructors
     public ChatMessage() {}
 
@@ -109,5 +112,13 @@ public class ChatMessage {
 
     public void setFromShop(boolean fromShop) {
         isFromShop = fromShop;
+    }
+
+    public boolean isRead() {
+        return isRead;
+    }
+
+    public void setRead(boolean read) {
+        isRead = read;
     }
 }
