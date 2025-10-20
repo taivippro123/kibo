@@ -132,10 +132,7 @@
             android:exported="false"
             android:label="Chat với khách hàng"
             android:theme="@style/Theme.Kibo" />
-        <!-- Google Maps API Key -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_key" />
+
     </application>
 
 </manifest>
