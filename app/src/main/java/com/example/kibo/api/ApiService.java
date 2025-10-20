@@ -39,8 +39,9 @@ import com.example.kibo.models.Conversation;
 import com.example.kibo.models.SendChatMessageRequest;
 import com.example.kibo.models.PaginationResponse;
 import com.example.kibo.models.ConversationResponse;
+import com.example.kibo.models.UnreadCountResponse;
 import com.example.kibo.models.StoreLocationsResponse;
-import com.example.kibo.models.StoreLocation;
+    import com.example.kibo.models.StoreLocation;
 
 import java.util.List;
 
@@ -298,6 +299,12 @@ public interface ApiService {
 
     @HTTP(method = "DELETE", path = "admin/AdminChat/messages/{messageId}", hasBody = false)
     Call<ApiResponse<String>> deleteMessage(@Path("messageId") int messageId);
+
+    @POST("admin/AdminChat/conversations/{conversationId}/read")
+    Call<ApiResponse<String>> markConversationAsRead(@Path("conversationId") int conversationId);
+
+    @GET("admin/AdminChat/conversations/{conversationId}/unread-count")
+    Call<ApiResponse<UnreadCountResponse>> getUnreadMessageCount(@Path("conversationId") int conversationId);
 
     // Store locations
     @GET("StoreLocations")
