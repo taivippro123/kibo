@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:fitsSystemWindows="true"
     android:background="@color/white">
 
     <!-- Search Bar -->
@@ -45,12 +46,28 @@
 
 
 
-    <!-- Red underline for selected tab -->
-    <View
-        android:layout_width="60dp"
-        android:layout_height="3dp"
-        android:background="@color/primary_color"
-        android:layout_marginStart="32dp" />
+    <!-- Category Tabs - Dynamically loaded from API -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:id="@+id/tabs_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <!-- "Tất cả" tab will be added dynamically as the first tab -->
+            <!-- Other category tabs will be loaded from API -->
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
 
     <!-- Filter and Sort Options -->
     <LinearLayout
@@ -75,21 +92,6 @@
             android:layout_marginStart="8dp" />
 
         <ImageView
-            android:id="@+id/btn_rating"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_star"
-            android:layout_marginStart="24dp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Rating 4.5+"
-            android:textSize="14sp"
-            android:textColor="@color/gray_dark"
-            android:layout_marginStart="8dp" />
-
-        <ImageView
             android:id="@+id/btn_price"
             android:layout_width="20dp"
             android:layout_height="20dp"
@@ -100,25 +102,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Price"
-            android:textSize="14sp"
-            android:textColor="@color/gray_dark"
-            android:layout_marginStart="8dp" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
-
-        <ImageView
-            android:id="@+id/btn_promo"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_promo" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Promo"
             android:textSize="14sp"
             android:textColor="@color/gray_dark"
             android:layout_marginStart="8dp" />

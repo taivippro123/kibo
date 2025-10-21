@@ -248,56 +248,7 @@
                                 android:layout_marginTop="12dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal"
-                                android:paddingHorizontal="8dp">
-
-                                <!-- CỤM 1: Rating & Reviews -->
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:gravity="center_vertical"
-                                    android:orientation="horizontal">
-
-                                    <TextView
-                                        android:layout_width="16dp"
-                                        android:layout_height="16dp"
-                                        android:text="★"
-                                        android:textColor="@android:color/holo_orange_dark"
-                                        android:gravity="center"
-                                        android:textSize="12sp" />
-
-                                    <TextView
-                                        android:id="@+id/tv_rating"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginStart="6dp"
-                                        android:text="4.9 (23)"
-                                        android:textColor="@color/black"
-                                        android:textSize="13sp" />
-
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginStart="6dp"
-                                        android:text="Ratings and reviews"
-                                        android:textColor="@color/gray_medium"
-                                        android:textSize="13sp" />
-                                </LinearLayout>
-
-                                <TextView
-                                    android:id="@+id/btn_arrow_right"
-                                    android:layout_width="48dp"
-                                    android:layout_height="48dp"
-                                    android:text=">"
-                                    android:textColor="@color/red_dark"
-                                    android:gravity="center"
-                                    android:textSize="18sp"
-                                    android:background="@null"
-                                    android:clickable="true"
-                                    android:focusable="true"
-                                    android:padding="12dp" />
-
-                            </LinearLayout>
+                                android:paddingHorizontal="8dp"/>
 
                         </LinearLayout>
 

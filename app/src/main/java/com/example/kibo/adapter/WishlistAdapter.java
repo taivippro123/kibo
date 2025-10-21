@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import com.example.kibo.R;
 import com.example.kibo.models.Product;
 import java.text.NumberFormat;
@@ -74,9 +75,16 @@ public class WishlistAdapter extends RecyclerView.Adapter<WishlistAdapter.Wishli
             holder.tvDiscount.setVisibility(View.GONE);
         }
 
-        // Load product image (you'll need to implement image loading, e.g., with Glide
-        // or Picasso)
-        // Glide.with(context).load(product.getImageUrl()).into(holder.imgProduct);
+        // Load product image with Glide
+        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            Glide.with(context)
+                    .load(product.getImageUrl())
+                    .placeholder(R.drawable.kibo_logo)
+                    .error(R.drawable.kibo_logo)
+                    .into(holder.imgProduct);
+        } else {
+            holder.imgProduct.setImageResource(R.drawable.kibo_logo);
+        }
 
         // Set click listeners
         holder.itemView.setOnClickListener(v -> {

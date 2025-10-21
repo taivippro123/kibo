@@ -4,9 +4,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,10 +16,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.kibo.adapter.WishlistAdapter;
 import com.example.kibo.models.Product;
+import com.example.kibo.models.WishlistResponse;
+import com.example.kibo.models.AddToWishlistRequest;
+import com.example.kibo.models.ApiResponse;
+import com.example.kibo.models.Category;
+import com.example.kibo.models.CategoryResponse;
+import com.example.kibo.api.ApiClient;
+import com.example.kibo.api.ApiService;
+import com.example.kibo.utils.SessionManager;
 import java.util.ArrayList;
 import java.util.List;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class WishlistActivity extends AppCompatActivity implements WishlistAdapter.OnWishlistItemClickListener {
+
+    private static final String TAG = "WishlistActivity";
 
     private RecyclerView recyclerWishlist;
     private WishlistAdapter wishlistAdapter;
@@ -26,33 +41,38 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
 
     // UI components
     private EditText edtSearch;
-    private TextView tabAkko, tabAula, tabAsus;
-    private ImageView btnFilter, btnRating, btnPrice, btnPromo;
+    private LinearLayout tabsContainer;
+    private ImageView btnFilter, btnPrice;
 
-    private String currentCategory = "AKKO";
+    private String currentCategory = "ALL"; // Changed to show all products by default
+    private List<TextView> categoryTabs = new ArrayList<>();
+
+    // API and Session
+    private ApiService apiService;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wishlist);
 
+        // Initialize API and Session
+        sessionManager = new SessionManager(this);
+        apiService = ApiClient.getApiServiceWithAuth(this);
+
         initViews();
         setupRecyclerView();
-        setupTabNavigation();
         setupFilterButtons();
+        loadCategories(); // Load categories from API first
         loadWishlistData();
     }
 
     private void initViews() {
         recyclerWishlist = findViewById(R.id.recycler_wishlist);
         edtSearch = findViewById(R.id.edt_search);
-        tabAkko = findViewById(R.id.tab_akko);
-        tabAula = findViewById(R.id.tab_aula);
-        tabAsus = findViewById(R.id.tab_asus);
+        tabsContainer = findViewById(R.id.tabs_container);
         btnFilter = findViewById(R.id.btn_filter);
-        btnRating = findViewById(R.id.btn_rating);
         btnPrice = findViewById(R.id.btn_price);
-        btnPromo = findViewById(R.id.btn_promo);
 
         // Setup search functionality
         edtSearch.addTextChangedListener(new TextWatcher() {
@@ -82,17 +102,91 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
         recyclerWishlist.setAdapter(wishlistAdapter);
     }
 
+    private void loadCategories() {
+        // Call API to get categories
+        Call<CategoryResponse> call = apiService.getCategories();
+        call.enqueue(new Callback<CategoryResponse>() {
+            @Override
+            public void onResponse(Call<CategoryResponse> call, Response<CategoryResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    CategoryResponse categoryResponse = response.body();
+                    List<Category> categories = categoryResponse.getData();
+
+                    Log.d(TAG, "Categories loaded: " + categories.size() + " items");
+
+                    // Setup tabs with loaded categories
+                    setupCategoryTabs(categories);
+                } else {
+                    Log.e(TAG, "Failed to load categories: " + response.code());
+                    // Setup with default "All" tab only
+                    setupCategoryTabs(new ArrayList<>());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CategoryResponse> call, Throwable t) {
+                Log.e(TAG, "Error loading categories", t);
+                // Setup with default "All" tab only
+                setupCategoryTabs(new ArrayList<>());
+            }
+        });
+    }
+
+    private void setupCategoryTabs(List<Category> categories) {
+        tabsContainer.removeAllViews();
+        categoryTabs.clear();
+
+        // Add "Tất cả" tab first
+        TextView tabAll = createTabView("Tất cả", "ALL", true);
+        tabsContainer.addView(tabAll);
+        categoryTabs.add(tabAll);
+
+        // Add tabs for each category from API
+        for (Category category : categories) {
+            TextView tabView = createTabView(category.getCategoryName(), category.getCategoryName(), false);
+            tabsContainer.addView(tabView);
+            categoryTabs.add(tabView);
+        }
+    }
+
+    private TextView createTabView(String displayText, final String categoryName, boolean isSelected) {
+        TextView tabView = new TextView(this);
+        tabView.setText(displayText);
+        tabView.setTextSize(14);
+        tabView.setPadding(
+                (int) (8 * getResources().getDisplayMetrics().density),
+                (int) (8 * getResources().getDisplayMetrics().density),
+                (int) (8 * getResources().getDisplayMetrics().density),
+                (int) (8 * getResources().getDisplayMetrics().density));
+
+        // Set layout params with margin
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.setMargins((int) (16 * getResources().getDisplayMetrics().density), 0, 0, 0);
+        tabView.setLayoutParams(params);
+
+        // Set initial style
+        if (isSelected) {
+            tabView.setTextColor(getResources().getColor(R.color.primary_color));
+            tabView.setBackground(getResources().getDrawable(R.drawable.bg_tab_selected));
+        } else {
+            tabView.setTextColor(getResources().getColor(R.color.gray_medium));
+        }
+
+        // Set click listener
+        tabView.setOnClickListener(v -> selectTab(categoryName, tabView));
+
+        return tabView;
+    }
+
     private void setupTabNavigation() {
-        tabAkko.setOnClickListener(v -> selectTab("AKKO", tabAkko));
-        tabAula.setOnClickListener(v -> selectTab("AULA", tabAula));
-        tabAsus.setOnClickListener(v -> selectTab("ASUS", tabAsus));
+        // This method is no longer needed as tabs are created dynamically
     }
 
     private void setupFilterButtons() {
         btnFilter.setOnClickListener(v -> showFilterDialog());
-        btnRating.setOnClickListener(v -> filterByRating());
         btnPrice.setOnClickListener(v -> showPriceFilter());
-        btnPromo.setOnClickListener(v -> filterByPromo());
     }
 
     private void selectTab(String category, TextView selectedTab) {
@@ -110,84 +204,111 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
     private void resetTabStyles() {
         int grayColor = getResources().getColor(R.color.gray_medium);
 
-        tabAkko.setTextColor(grayColor);
-        tabAula.setTextColor(grayColor);
-        tabAsus.setTextColor(grayColor);
-
-        tabAkko.setBackground(null);
-        tabAula.setBackground(null);
-        tabAsus.setBackground(null);
+        // Reset all category tabs
+        for (TextView tab : categoryTabs) {
+            tab.setTextColor(grayColor);
+            tab.setBackground(null);
+        }
     }
 
     private void loadWishlistData() {
-        // TODO: Load wishlist data from database or API
-        // For demo purposes, create some sample data
-        createSampleData();
-        filterByCategory();
+        int userId = sessionManager.getUserId();
+
+        if (userId == -1) {
+            Toast.makeText(this, "Vui lòng đăng nhập để xem wishlist", Toast.LENGTH_SHORT).show();
+            // Navigate to login
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
+        // Call API to get wishlist
+        Call<List<WishlistResponse>> call = apiService.getWishlist(userId);
+        call.enqueue(new Callback<List<WishlistResponse>>() {
+            @Override
+            public void onResponse(Call<List<WishlistResponse>> call, Response<List<WishlistResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<WishlistResponse> wishlistResponses = response.body();
+                    Log.d(TAG, "Wishlist loaded: " + wishlistResponses.size() + " items");
+
+                    // Load product details for each wishlist item
+                    loadProductDetailsFromWishlist(wishlistResponses);
+                } else {
+                    Log.e(TAG, "Failed to load wishlist: " + response.code());
+                    Toast.makeText(WishlistActivity.this, "Không thể tải danh sách yêu thích", Toast.LENGTH_SHORT)
+                            .show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<WishlistResponse>> call, Throwable t) {
+                Log.e(TAG, "Error loading wishlist", t);
+                Toast.makeText(WishlistActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    private void createSampleData() {
+    private void loadProductDetailsFromWishlist(List<WishlistResponse> wishlistResponses) {
         wishlistItems.clear();
 
-        // Sample products for AKKO
-        Product product1 = new Product();
-        product1.setProductName("Leobog Hi86 TM HI8602");
-        product1.setBriefDescription("Trắng đen/ Nimbus V3 switch");
-        product1.setPrice(2242000);
-        product1.setCategoryName("AKKO");
-        wishlistItems.add(product1);
+        if (wishlistResponses.isEmpty()) {
+            Log.d(TAG, "Wishlist is empty");
+            filterByCategory();
+            Toast.makeText(this, "Danh sách yêu thích trống", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        Product product2 = new Product();
-        product2.setProductName("Leobog Hi86 TM HI8602");
-        product2.setBriefDescription("Trắng đen/ Nimbus V3 switch");
-        product2.setPrice(2242000);
-        product2.setCategoryName("AKKO");
-        wishlistItems.add(product2);
+        Log.d(TAG, "Loading " + wishlistResponses.size() + " products from wishlist");
 
-        Product product3 = new Product();
-        product3.setProductName("Leobog Hi86 TM HI8602");
-        product3.setBriefDescription("Trắng đen/ Nimbus V3 switch");
-        product3.setPrice(2242000);
-        product3.setCategoryName("AKKO");
-        wishlistItems.add(product3);
+        // Load product details for each product ID in wishlist
+        for (WishlistResponse wishlistItem : wishlistResponses) {
+            int productId = wishlistItem.getProductId();
 
-        Product product4 = new Product();
-        product4.setProductName("Leobog Hi86 TM HI8602");
-        product4.setBriefDescription("Trắng đen/ Nimbus V3 switch");
-        product4.setPrice(2242000);
-        product4.setCategoryName("AKKO");
-        wishlistItems.add(product4);
+            Log.d(TAG, "Fetching product details for ID: " + productId);
 
-        Product product5 = new Product();
-        product5.setProductName("Leobog Hi86 TM HI8602");
-        product5.setBriefDescription("Trắng đen/ Nimbus V3 switch");
-        product5.setPrice(2242000);
-        product5.setCategoryName("AKKO");
-        wishlistItems.add(product5);
+            Call<Product> call = apiService.getProductDetail(productId);
+            call.enqueue(new Callback<Product>() {
+                @Override
+                public void onResponse(Call<Product> call, Response<Product> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        Product product = response.body();
+                        wishlistItems.add(product);
+                        Log.d(TAG, "Product loaded: " + product.getProductName() +
+                                " (Category: " + product.getCategoryName() + ")");
 
-        // Add sample products for other categories
-        Product aulaProduct = new Product();
-        aulaProduct.setProductName("AULA F87 Mechanical Keyboard");
-        aulaProduct.setBriefDescription("RGB Backlight/ Blue Switch");
-        aulaProduct.setPrice(1890000);
-        aulaProduct.setCategoryName("AULA");
-        wishlistItems.add(aulaProduct);
+                        // Update UI after each product is loaded
+                        filterByCategory();
+                        Log.d(TAG, "Current wishlist size: " + wishlistItems.size() +
+                                ", Filtered size: " + filteredWishlistItems.size());
+                    } else {
+                        Log.e(TAG, "Failed to load product " + productId + ": " + response.code());
+                    }
+                }
 
-        Product asusProduct = new Product();
-        asusProduct.setProductName("ASUS ROG Strix Scope RX");
-        asusProduct.setBriefDescription("Gaming Keyboard/ Cherry MX");
-        asusProduct.setPrice(3150000);
-        asusProduct.setCategoryName("ASUS");
-        wishlistItems.add(asusProduct);
+                @Override
+                public void onFailure(Call<Product> call, Throwable t) {
+                    Log.e(TAG, "Error loading product " + productId, t);
+                }
+            });
+        }
     }
 
     private void filterByCategory() {
         filteredWishlistItems.clear();
-        for (Product product : wishlistItems) {
-            if (product.getCategoryName() != null && product.getCategoryName().equals(currentCategory)) {
-                filteredWishlistItems.add(product);
+
+        if ("ALL".equals(currentCategory)) {
+            // Show all products
+            filteredWishlistItems.addAll(wishlistItems);
+        } else {
+            // Filter by specific category
+            for (Product product : wishlistItems) {
+                if (product.getCategoryName() != null && product.getCategoryName().equals(currentCategory)) {
+                    filteredWishlistItems.add(product);
+                }
             }
         }
+
         wishlistAdapter.notifyDataSetChanged();
     }
 
@@ -198,8 +319,10 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
             filterByCategory();
         } else {
             for (Product product : wishlistItems) {
-                if (product.getCategoryName() != null && product.getCategoryName().equals(currentCategory) &&
-                        product.getProductName().toLowerCase().contains(query.toLowerCase())) {
+                boolean matchesCategory = "ALL".equals(currentCategory) ||
+                        (product.getCategoryName() != null && product.getCategoryName().equals(currentCategory));
+
+                if (matchesCategory && product.getProductName().toLowerCase().contains(query.toLowerCase())) {
                     filteredWishlistItems.add(product);
                 }
             }
@@ -211,16 +334,8 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
         Toast.makeText(this, "Filter dialog - Coming soon", Toast.LENGTH_SHORT).show();
     }
 
-    private void filterByRating() {
-        Toast.makeText(this, "Filter by rating - Coming soon", Toast.LENGTH_SHORT).show();
-    }
-
     private void showPriceFilter() {
         Toast.makeText(this, "Price filter - Coming soon", Toast.LENGTH_SHORT).show();
-    }
-
-    private void filterByPromo() {
-        Toast.makeText(this, "Filter by promo - Coming soon", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -233,13 +348,37 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
 
     @Override
     public void onRemoveFromWishlist(Product product) {
-        // Remove from wishlist
-        int position = filteredWishlistItems.indexOf(product);
-        if (position != -1) {
-            filteredWishlistItems.remove(position);
-            wishlistItems.remove(product);
-            wishlistAdapter.notifyItemRemoved(position);
-            Toast.makeText(this, "Đã xóa khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show();
-        }
+        int userId = sessionManager.getUserId();
+        int productId = product.getProductId();
+
+        // Create request to remove from wishlist
+        AddToWishlistRequest request = new AddToWishlistRequest(userId, new int[] { productId });
+
+        Call<ApiResponse<String>> call = apiService.removeFromWishlist(request);
+        call.enqueue(new Callback<ApiResponse<String>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                if (response.isSuccessful()) {
+                    // Remove from local list
+                    int position = filteredWishlistItems.indexOf(product);
+                    if (position != -1) {
+                        filteredWishlistItems.remove(position);
+                        wishlistItems.remove(product);
+                        wishlistAdapter.notifyItemRemoved(position);
+                    }
+                    Toast.makeText(WishlistActivity.this, "Đã xóa khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "Product removed from wishlist: " + product.getProductName());
+                } else {
+                    Log.e(TAG, "Failed to remove from wishlist: " + response.code());
+                    Toast.makeText(WishlistActivity.this, "Không thể xóa khỏi wishlist", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                Log.e(TAG, "Error removing from wishlist", t);
+                Toast.makeText(WishlistActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }
