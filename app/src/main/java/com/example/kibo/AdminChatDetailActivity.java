@@ -98,6 +98,9 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         
         loadMessages();
         startSignalR();
+        
+        // Mark conversation as read when admin enters
+        markConversationAsRead();
     }
 
     private void initializeViews() {
@@ -253,13 +256,15 @@ public class AdminChatDetailActivity extends AppCompatActivity {
                     sentMessage.setFromShop(true); // This is from shop/admin
                     sentMessage.setSenderName("Shop");
                     
-                    // Add message to adapter
-                    messageAdapter.addMessage(sentMessage);
-                    
-                    // Scroll to bottom
-                    rvAdminMessages.post(() -> {
-                        rvAdminMessages.scrollToPosition(messages.size() - 1);
-                    });
+                    // Only add message if SignalR is not connected (to avoid duplicates)
+                    if (signalRManager == null || !signalRManager.isConnected()) {
+                        messageAdapter.addMessage(sentMessage);
+                        
+                        // Scroll to bottom
+                        rvAdminMessages.post(() -> {
+                            rvAdminMessages.scrollToPosition(messages.size() - 1);
+                        });
+                    }
                     
                     Toast.makeText(AdminChatDetailActivity.this, "Tin nhắn đã gửi", Toast.LENGTH_SHORT).show();
                 } else {
@@ -344,5 +349,40 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         if (signalRManager != null) {
             signalRManager.stop(conversationId);
         }
+    }
+
+    private void markConversationAsRead() {
+        if (conversationId <= 0) {
+            System.out.println("Invalid conversation ID, cannot mark as read");
+            return;
+        }
+        
+        System.out.println("Admin entering conversation " + conversationId + " - marking customer messages as read...");
+        
+        Call<com.example.kibo.models.ApiResponse<String>> call = apiService.markConversationAsRead(conversationId);
+        call.enqueue(new Callback<com.example.kibo.models.ApiResponse<String>>() {
+            @Override
+            public void onResponse(Call<com.example.kibo.models.ApiResponse<String>> call, Response<com.example.kibo.models.ApiResponse<String>> response) {
+                if (response.isSuccessful()) {
+                    System.out.println("Successfully marked customer messages in conversation " + conversationId + " as read");
+                } else {
+                    System.out.println("Failed to mark conversation as read: " + response.code());
+                    if (response.errorBody() != null) {
+                        try {
+                            String errorMsg = response.errorBody().string();
+                            System.out.println("Error details: " + errorMsg);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
+                System.out.println("Error marking conversation as read: " + t.getMessage());
+                t.printStackTrace();
+            }
+        });
     }
 }

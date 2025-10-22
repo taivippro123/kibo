@@ -21,11 +21,16 @@ import com.example.kibo.utils.SessionManager;
 
 import com.bumptech.glide.Glide;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.view.View;
 
 public class OrdersStatusFragment extends Fragment {
     private static final String ARG_STATUS = "status";
+    
+    private LinearLayout layoutEmptyOrders;
+    private RecyclerView recyclerViewOrders;
+    private OrdersAdapter adapter;
 
     public static OrdersStatusFragment newInstance(String status) {
         OrdersStatusFragment fragment = new OrdersStatusFragment();
@@ -39,12 +44,22 @@ public class OrdersStatusFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_orders_status, container, false);
-        RecyclerView rv = root.findViewById(R.id.rv_orders);
-        rv.setLayoutManager(new LinearLayoutManager(getContext()));
-        OrdersAdapter adapter = new OrdersAdapter();
-        rv.setAdapter(adapter);
+        
+        // Initialize views
+        recyclerViewOrders = root.findViewById(R.id.rv_orders);
+        layoutEmptyOrders = root.findViewById(R.id.layout_empty_orders);
+        
+        recyclerViewOrders.setLayoutManager(new LinearLayoutManager(getContext()));
+        adapter = new OrdersAdapter(this);
+        recyclerViewOrders.setAdapter(adapter);
 
         // Load orders for current user
+        loadOrders();
+
+        return root;
+    }
+    
+    private void loadOrders() {
         SessionManager sm = new SessionManager(requireContext());
         int userId = sm.getUserId();
         ApiService api = ApiClient.getApiService();
@@ -54,23 +69,48 @@ public class OrdersStatusFragment extends Fragment {
                 if (!isAdded()) return;
                 if (response.isSuccessful() && response.body() != null) {
                     adapter.setOrders(response.body());
+                } else {
+                    adapter.setOrders(new java.util.ArrayList<>());
                 }
             }
 
             @Override
-            public void onFailure(retrofit2.Call<java.util.List<Order>> call, Throwable t) { }
+            public void onFailure(retrofit2.Call<java.util.List<Order>> call, Throwable t) {
+                if (!isAdded()) return;
+                adapter.setOrders(new java.util.ArrayList<>());
+            }
         });
-
-        return root;
+    }
+    
+    public void showEmptyState() {
+        layoutEmptyOrders.setVisibility(View.VISIBLE);
+        recyclerViewOrders.setVisibility(View.GONE);
+    }
+    
+    public void showOrders() {
+        layoutEmptyOrders.setVisibility(View.GONE);
+        recyclerViewOrders.setVisibility(View.VISIBLE);
     }
 
     private static class OrdersAdapter extends RecyclerView.Adapter<OrderVH> {
         private final java.util.List<Order> orders = new java.util.ArrayList<>();
+        private final OrdersStatusFragment fragment;
+
+        OrdersAdapter(OrdersStatusFragment fragment) {
+            this.fragment = fragment;
+        }
 
         void setOrders(java.util.List<Order> list) {
             orders.clear();
             orders.addAll(list);
             notifyDataSetChanged();
+            
+            // Show/hide empty state based on orders count
+            if (orders.isEmpty()) {
+                fragment.showEmptyState();
+            } else {
+                fragment.showOrders();
+            }
         }
 
         @NonNull @Override public OrderVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {

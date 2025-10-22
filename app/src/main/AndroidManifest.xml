@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -21,6 +23,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Shop Map Activity -->
+        <activity
+            android:name=".ShopMapActivity"
+            android:exported="false"
+            android:label="Địa chỉ cửa hàng"
+            android:theme="@style/Theme.Kibo" />
         
         <activity
             android:name=".LoginActivity"
@@ -123,6 +132,8 @@
             android:exported="false"
             android:label="Chat với khách hàng"
             android:theme="@style/Theme.Kibo" />
+
+
     </application>
 
 </manifest>
