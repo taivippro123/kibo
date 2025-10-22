@@ -62,4 +62,7 @@ dependencies {
 
     // SignalR Java client for realtime chat
     implementation 'com.microsoft.signalr:signalr:8.0.6'
+    
+    // MPAndroidChart for dashboard analytics
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 }
