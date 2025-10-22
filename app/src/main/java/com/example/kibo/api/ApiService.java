@@ -247,6 +247,15 @@ public interface ApiService {
     // Check payment status
     @GET("Payments")
     Call<java.util.List<com.example.kibo.models.Payment>> getPaymentStatus(@Query("PaymentId") int paymentId);
+    
+    // Get all payments for admin dashboard with pagination and date filtering
+    @GET("Payments")
+    Call<java.util.List<com.example.kibo.models.Payment>> getAllPayments(
+        @Query("Page") int page,
+        @Query("PageSize") int pageSize,
+        @Query("StartDate") String startDate,
+        @Query("EndDate") String endDate
+    );
 
     // Chat endpoints
     @POST("Conversations/start")
