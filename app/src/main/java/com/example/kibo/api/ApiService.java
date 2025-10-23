@@ -41,7 +41,10 @@ import com.example.kibo.models.PaginationResponse;
 import com.example.kibo.models.ConversationResponse;
 import com.example.kibo.models.UnreadCountResponse;
 import com.example.kibo.models.StoreLocationsResponse;
-    import com.example.kibo.models.StoreLocation;
+import com.example.kibo.models.StoreLocation;
+import com.example.kibo.models.WishlistItem;
+import com.example.kibo.models.WishlistResponse;
+import com.example.kibo.models.AddToWishlistRequest;
 
 import java.util.List;
 
@@ -79,17 +82,15 @@ public interface ApiService {
     // Get products with pagination
     @GET("Products")
     Call<ProductResponse> getProducts(
-        @Query("pageNumber") int pageNumber,
-        @Query("pageSize") int pageSize
-    );
+            @Query("pageNumber") int pageNumber,
+            @Query("pageSize") int pageSize);
 
     // Get products by category with pagination
     @GET("Products")
     Call<ProductResponse> getProductsByCategory(
-        @Query("Categoryid") int categoryId,
-        @Query("pageNumber") int pageNumber,
-        @Query("pageSize") int pageSize
-    );
+            @Query("Categoryid") int categoryId,
+            @Query("pageNumber") int pageNumber,
+            @Query("pageSize") int pageSize);
 
     // Get all products without pagination
     @GET("Products")
@@ -204,7 +205,6 @@ public interface ApiService {
     @GET("Categories")
     Call<CategoryResponse> getCategories();
 
-
     // Create category
     @POST("Categories")
     Call<ApiResponse<Category>> createCategory(@Body CategoryRequest request);
@@ -243,7 +243,7 @@ public interface ApiService {
     // Create shipping order
     @POST("Shipping/order")
     Call<ShippingOrderResponse> createShippingOrder(@Body ShippingOrderRequest request);
-    
+
     // Check payment status
     @GET("Payments")
     Call<java.util.List<com.example.kibo.models.Payment>> getPaymentStatus(@Query("PaymentId") int paymentId);
@@ -263,22 +263,19 @@ public interface ApiService {
 
     @GET("Conversations")
     Call<PaginationResponse<Conversation>> getConversations(
-        @Query("page") int page,
-        @Query("pageSize") int pageSize
-    );
+            @Query("page") int page,
+            @Query("pageSize") int pageSize);
 
     @GET("ChatMessages")
     Call<PaginationResponse<ChatMessage>> getChatMessages(
-        @Query("page") int page,
-        @Query("pageSize") int pageSize
-    );
+            @Query("page") int page,
+            @Query("pageSize") int pageSize);
 
     @GET("ChatMessages/conversation/{conversationId}")
     Call<PaginationResponse<ChatMessage>> getMessagesByConversation(
-        @Path("conversationId") int conversationId,
-        @Query("page") int page,
-        @Query("pageSize") int pageSize
-    );
+            @Path("conversationId") int conversationId,
+            @Query("page") int page,
+            @Query("pageSize") int pageSize);
 
     @POST("ChatMessages")
     Call<ChatMessage> sendChatMessage(@Body SendChatMessageRequest request);
@@ -289,22 +286,19 @@ public interface ApiService {
     // Admin chat endpoints - sử dụng endpoint Conversations với admin role
     @GET("Conversations")
     Call<PaginationResponse<ConversationResponse>> getAllConversations(
-        @Query("page") int page,
-        @Query("pageSize") int pageSize
-    );
+            @Query("page") int page,
+            @Query("pageSize") int pageSize);
 
     @GET("admin/AdminChat/conversations/{conversationId}/messages")
     Call<PaginationResponse<ChatMessage>> getConversationMessages(
-        @Path("conversationId") int conversationId,
-        @Query("page") int page,
-        @Query("pageSize") int pageSize
-    );
+            @Path("conversationId") int conversationId,
+            @Query("page") int page,
+            @Query("pageSize") int pageSize);
 
     @POST("admin/AdminChat/conversations/{conversationId}/messages")
     Call<ChatMessage> sendMessageToCustomer(
-        @Path("conversationId") int conversationId,
-        @Body SendChatMessageRequest request
-    );
+            @Path("conversationId") int conversationId,
+            @Body SendChatMessageRequest request);
 
     @HTTP(method = "DELETE", path = "admin/AdminChat/messages/{messageId}", hasBody = false)
     Call<ApiResponse<String>> deleteMessage(@Path("messageId") int messageId);
@@ -326,4 +320,13 @@ public interface ApiService {
     Call<StoreLocationsResponse> getStoreLocationById(@Query("Locationid") int locationId,
                                                       @Query("Page") int page,
                                                       @Query("PageSize") int pageSize);
+    // Wishlist endpoints
+    @GET("Wishlist")
+    Call<List<WishlistResponse>> getWishlist(@Query("userid") int userId);
+
+    @POST("Wishlist/add")
+    Call<ApiResponse<String>> addToWishlist(@Body AddToWishlistRequest request);
+
+    @HTTP(method = "DELETE", path = "Wishlist/remove", hasBody = true)
+    Call<ApiResponse<String>> removeFromWishlist(@Body AddToWishlistRequest request);
 }
