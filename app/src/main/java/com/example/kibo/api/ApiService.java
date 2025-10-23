@@ -324,7 +324,7 @@ public interface ApiService {
         Call<List<WishlistResponse>> getWishlist(@Query("userid") int userId);
 
         @POST("Wishlist/add")
-        Call<ApiResponse<String>> addToWishlist(@Body AddToWishlistRequest request);
+        Call<List<WishlistResponse>> addToWishlist(@Body AddToWishlistRequest request);
 
         @DELETE("Wishlist/by-user-product")
         Call<ApiResponse<String>> removeFromWishlist(@Query("userId") int userId, @Query("productId") int productId);

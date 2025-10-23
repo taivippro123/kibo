@@ -365,7 +365,7 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
                 if (response.code() == 204 || response.isSuccessful()) {
                     Toast.makeText(WishlistActivity.this, "Đã xóa khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show();
                     Log.d(TAG, "Product removed from wishlist: " + product.getProductName());
-                    
+
                     // Reload wishlist from server
                     loadWishlistData();
                 } else {
