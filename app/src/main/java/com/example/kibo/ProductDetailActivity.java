@@ -22,6 +22,8 @@ import com.example.kibo.models.Cart;
 import com.example.kibo.models.CartRequest;
 import com.example.kibo.models.CartItemRequest;
 import com.example.kibo.models.ApiResponse;
+import com.example.kibo.models.AddToWishlistRequest;
+import com.example.kibo.models.WishlistResponse;
 import com.example.kibo.utils.SessionManager;
 import com.example.kibo.adapters.ProductImageAdapter;
 import androidx.viewpager2.widget.ViewPager2;
@@ -59,6 +61,7 @@ public class ProductDetailActivity extends AppCompatActivity {
     private LinearLayout btnChat;
     private Button btnBuy;
     private FrameLayout loadingLayout;
+    private ImageButton btnAddToWishlist;
 
     // Quantity controls
     private Button btnDecrease;
@@ -126,6 +129,7 @@ public class ProductDetailActivity extends AppCompatActivity {
         btnChat = findViewById(R.id.btn_chat);
         btnBuy = findViewById(R.id.btn_buy);
         loadingLayout = findViewById(R.id.loading_layout);
+        btnAddToWishlist = findViewById(R.id.btn_add_to_wishlist);
 
         // Initialize quantity controls
         btnDecrease = findViewById(R.id.button_decrease);
@@ -135,6 +139,9 @@ public class ProductDetailActivity extends AppCompatActivity {
 
         // Setup quantity button listeners
         setupQuantityControls();
+
+        // Setup wishlist button listener
+        setupWishlistButton();
 
         // Setup image adapter
         imageAdapter = new ProductImageAdapter();
@@ -169,6 +176,56 @@ public class ProductDetailActivity extends AppCompatActivity {
             currentQuantity++;
             updateQuantityDisplay();
             updateTotalPrice();
+        });
+    }
+
+    private void setupWishlistButton() {
+        btnAddToWishlist.setOnClickListener(v -> {
+            if (!sessionManager.isLoggedIn()) {
+                Toast.makeText(this, "Vui lòng đăng nhập để thêm vào wishlist", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            addToWishlist();
+        });
+    }
+
+    private void addToWishlist() {
+        int userId = sessionManager.getUserId();
+        if (userId == -1 || currentProductId == -1) {
+            Toast.makeText(this, "Lỗi: Không thể thêm vào wishlist", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        showLoading(true);
+
+        // Create request with product ID array
+        int[] productIds = new int[] { currentProductId };
+        AddToWishlistRequest request = new AddToWishlistRequest(userId, productIds);
+
+        apiService.addToWishlist(request).enqueue(new Callback<List<com.example.kibo.models.WishlistResponse>>() {
+            @Override
+            public void onResponse(Call<List<com.example.kibo.models.WishlistResponse>> call,
+                    Response<List<com.example.kibo.models.WishlistResponse>> response) {
+                showLoading(false);
+
+                if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                    Toast.makeText(ProductDetailActivity.this,
+                            "Đã thêm vào wishlist!", Toast.LENGTH_SHORT).show();
+                    // Update icon to filled heart
+                    btnAddToWishlist.setImageResource(R.drawable.ic_heart_filled);
+                } else {
+                    Toast.makeText(ProductDetailActivity.this,
+                            "Không thể thêm vào wishlist", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<com.example.kibo.models.WishlistResponse>> call, Throwable t) {
+                showLoading(false);
+                Log.e(TAG, "Failed to add to wishlist", t);
+                Toast.makeText(ProductDetailActivity.this,
+                        "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
         });
     }
 

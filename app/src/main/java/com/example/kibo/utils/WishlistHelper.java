@@ -8,10 +8,13 @@ import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
 import com.example.kibo.models.AddToWishlistRequest;
 import com.example.kibo.models.ApiResponse;
+import com.example.kibo.models.WishlistResponse;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+
+import java.util.List;
 
 public class WishlistHelper {
     private static final String TAG = "WishlistHelper";
@@ -39,11 +42,11 @@ public class WishlistHelper {
         ApiService apiService = ApiClient.getApiServiceWithAuth(context);
         AddToWishlistRequest request = new AddToWishlistRequest(userId, new int[] { productId });
 
-        Call<ApiResponse<String>> call = apiService.addToWishlist(request);
-        call.enqueue(new Callback<ApiResponse<String>>() {
+        Call<List<WishlistResponse>> call = apiService.addToWishlist(request);
+        call.enqueue(new Callback<List<WishlistResponse>>() {
             @Override
-            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
-                if (response.isSuccessful()) {
+            public void onResponse(Call<List<WishlistResponse>> call, Response<List<WishlistResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
                     Log.d(TAG, "Product added to wishlist successfully");
                     if (callback != null) {
                         callback.onSuccess("Đã thêm vào danh sách yêu thích");
@@ -57,7 +60,7 @@ public class WishlistHelper {
             }
 
             @Override
-            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+            public void onFailure(Call<List<WishlistResponse>> call, Throwable t) {
                 Log.e(TAG, "Error adding to wishlist", t);
                 if (callback != null) {
                     callback.onError("Lỗi kết nối: " + t.getMessage());
@@ -81,9 +84,8 @@ public class WishlistHelper {
         }
 
         ApiService apiService = ApiClient.getApiServiceWithAuth(context);
-        AddToWishlistRequest request = new AddToWishlistRequest(userId, new int[] { productId });
 
-        Call<ApiResponse<String>> call = apiService.removeFromWishlist(request);
+        Call<ApiResponse<String>> call = apiService.removeFromWishlist(userId, productId);
         call.enqueue(new Callback<ApiResponse<String>>() {
             @Override
             public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
