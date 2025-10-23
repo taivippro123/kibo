@@ -81,9 +81,8 @@ public class WishlistHelper {
         }
 
         ApiService apiService = ApiClient.getApiServiceWithAuth(context);
-        AddToWishlistRequest request = new AddToWishlistRequest(userId, new int[] { productId });
 
-        Call<ApiResponse<String>> call = apiService.removeFromWishlist(request);
+        Call<ApiResponse<String>> call = apiService.removeFromWishlist(userId, productId);
         call.enqueue(new Callback<ApiResponse<String>>() {
             @Override
             public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {

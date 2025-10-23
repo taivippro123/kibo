@@ -351,26 +351,35 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
         int userId = sessionManager.getUserId();
         int productId = product.getProductId();
 
-        // Create request to remove from wishlist
-        AddToWishlistRequest request = new AddToWishlistRequest(userId, new int[] { productId });
+        Log.d(TAG, "Removing product from wishlist - UserId: " + userId + ", ProductId: " + productId);
 
-        Call<ApiResponse<String>> call = apiService.removeFromWishlist(request);
+        // Call API with query parameters (DELETE method)
+        Call<ApiResponse<String>> call = apiService.removeFromWishlist(userId, productId);
         call.enqueue(new Callback<ApiResponse<String>>() {
             @Override
             public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
-                if (response.isSuccessful()) {
-                    // Remove from local list
-                    int position = filteredWishlistItems.indexOf(product);
-                    if (position != -1) {
-                        filteredWishlistItems.remove(position);
-                        wishlistItems.remove(product);
-                        wishlistAdapter.notifyItemRemoved(position);
-                    }
+                Log.d(TAG, "Response code: " + response.code());
+                Log.d(TAG, "Response successful: " + response.isSuccessful());
+
+                // Check for 204 No Content (successful deletion with no body)
+                if (response.code() == 204 || response.isSuccessful()) {
                     Toast.makeText(WishlistActivity.this, "Đã xóa khỏi danh sách yêu thích", Toast.LENGTH_SHORT).show();
                     Log.d(TAG, "Product removed from wishlist: " + product.getProductName());
+                    
+                    // Reload wishlist from server
+                    loadWishlistData();
                 } else {
-                    Log.e(TAG, "Failed to remove from wishlist: " + response.code());
-                    Toast.makeText(WishlistActivity.this, "Không thể xóa khỏi wishlist", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Failed to remove from wishlist - Code: " + response.code());
+                    try {
+                        if (response.errorBody() != null) {
+                            String errorBody = response.errorBody().string();
+                            Log.e(TAG, "Error body: " + errorBody);
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error reading error body", e);
+                    }
+                    Toast.makeText(WishlistActivity.this, "Không thể xóa khỏi wishlist (code: " + response.code() + ")",
+                            Toast.LENGTH_SHORT).show();
                 }
             }
 
