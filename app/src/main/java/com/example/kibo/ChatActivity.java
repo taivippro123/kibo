@@ -269,13 +269,15 @@ public class ChatActivity extends AppCompatActivity {
                     sentMessage.setFromShop(false);
                     sentMessage.setSenderName("Bạn");
                     
-                    // Add message to adapter
-                    messageAdapter.addMessage(sentMessage);
-                    
-                    // Scroll to bottom
-                    rvChatMessages.post(() -> {
-                        rvChatMessages.scrollToPosition(messages.size() - 1);
-                    });
+                    // Only add message if SignalR is not connected (to avoid duplicates)
+                    if (signalRManager == null || !signalRManager.isConnected()) {
+                        messageAdapter.addMessage(sentMessage);
+                        
+                        // Scroll to bottom
+                        rvChatMessages.post(() -> {
+                            rvChatMessages.scrollToPosition(messages.size() - 1);
+                        });
+                    }
                     
                     Toast.makeText(ChatActivity.this, "Tin nhắn đã gửi", Toast.LENGTH_SHORT).show();
                 } else {
@@ -335,13 +337,15 @@ public class ChatActivity extends AppCompatActivity {
                     sentMessage.setFromShop(false);
                     sentMessage.setSenderName("Bạn");
                     
-                    // Add message to adapter
-                    messageAdapter.addMessage(sentMessage);
-                    
-                    // Scroll to bottom
-                    rvChatMessages.post(() -> {
-                        rvChatMessages.scrollToPosition(messages.size() - 1);
-                    });
+                    // Only add message if SignalR is not connected (to avoid duplicates)
+                    if (signalRManager == null || !signalRManager.isConnected()) {
+                        messageAdapter.addMessage(sentMessage);
+                        
+                        // Scroll to bottom
+                        rvChatMessages.post(() -> {
+                            rvChatMessages.scrollToPosition(messages.size() - 1);
+                        });
+                    }
                     
                     Toast.makeText(ChatActivity.this, "Tin nhắn đã gửi", Toast.LENGTH_SHORT).show();
                 } else {

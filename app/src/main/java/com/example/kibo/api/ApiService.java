@@ -39,6 +39,9 @@ import com.example.kibo.models.Conversation;
 import com.example.kibo.models.SendChatMessageRequest;
 import com.example.kibo.models.PaginationResponse;
 import com.example.kibo.models.ConversationResponse;
+import com.example.kibo.models.UnreadCountResponse;
+import com.example.kibo.models.StoreLocationsResponse;
+import com.example.kibo.models.StoreLocation;
 import com.example.kibo.models.WishlistItem;
 import com.example.kibo.models.WishlistResponse;
 import com.example.kibo.models.AddToWishlistRequest;
@@ -244,6 +247,15 @@ public interface ApiService {
     // Check payment status
     @GET("Payments")
     Call<java.util.List<com.example.kibo.models.Payment>> getPaymentStatus(@Query("PaymentId") int paymentId);
+    
+    // Get all payments for admin dashboard with pagination and date filtering
+    @GET("Payments")
+    Call<java.util.List<com.example.kibo.models.Payment>> getAllPayments(
+        @Query("Page") int page,
+        @Query("PageSize") int pageSize,
+        @Query("StartDate") String startDate,
+        @Query("EndDate") String endDate
+    );
 
     // Chat endpoints
     @POST("Conversations/start")
@@ -291,6 +303,23 @@ public interface ApiService {
     @HTTP(method = "DELETE", path = "admin/AdminChat/messages/{messageId}", hasBody = false)
     Call<ApiResponse<String>> deleteMessage(@Path("messageId") int messageId);
 
+    @POST("admin/AdminChat/conversations/{conversationId}/read")
+    Call<ApiResponse<String>> markConversationAsRead(@Path("conversationId") int conversationId);
+
+    @GET("admin/AdminChat/conversations/{conversationId}/unread-count")
+    Call<ApiResponse<UnreadCountResponse>> getUnreadMessageCount(@Path("conversationId") int conversationId);
+
+    // Store locations
+    @GET("StoreLocations")
+    Call<StoreLocationsResponse> getStoreLocations(
+        @Query("Page") int page,
+        @Query("PageSize") int pageSize
+    );
+
+    @GET("StoreLocations")
+    Call<StoreLocationsResponse> getStoreLocationById(@Query("Locationid") int locationId,
+                                                      @Query("Page") int page,
+                                                      @Query("PageSize") int pageSize);
     // Wishlist endpoints
     @GET("Wishlist")
     Call<List<WishlistResponse>> getWishlist(@Query("userid") int userId);

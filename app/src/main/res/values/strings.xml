@@ -25,4 +25,6 @@
     <string name="sample_category_name">Danh mục sản phẩm</string>
     <string name="sample_price">1.290.000 đ</string>
     <string name="sample_stock">Tồn kho: 25</string>
+
+
 </resources>

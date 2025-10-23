@@ -4,37 +4,109 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
-    android:padding="12dp">
+    android:padding="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Hàng KPI (grid 2-3 cột, bạn set LayoutManager trong code) -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_kpis"
+        <!-- Page Title -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false"
-            android:overScrollMode="never"
-            tools:listitem="@layout/item_kpi_card" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="16dp"
+            android:paddingHorizontal="20dp"
+            android:background="@drawable/bg_title_header">
+            
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Thống kê"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:textColor="@color/primary_red"
+                android:gravity="center" />
+                
+        </LinearLayout>
 
+        <!-- Chart Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_chart_container"
+            android:padding="16dp"
+            android:layout_marginHorizontal="8dp"
+            android:layout_marginBottom="12dp">
+            
+            <!-- Chart Title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Doanh thu theo ngày"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="@color/gray_dark"
+                android:paddingBottom="12dp"
+                android:gravity="center" />
+            
+            <!-- Chart -->
+            <com.github.mikephil.charting.charts.BarChart
+                android:id="@+id/revenueChart"
+                android:layout_width="match_parent"
+                android:layout_height="300dp" />
+        </LinearLayout>
+
+        <!-- Best Selling Products Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_chart_container"
+            android:padding="16dp"
+            android:layout_marginHorizontal="8dp"
+            android:layout_marginBottom="12dp">
+            
+            <!-- Chart Title -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sản phẩm bán chạy nhất"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="@color/gray_dark"
+                android:paddingBottom="12dp"
+                android:gravity="center" />
+            
+            <!-- Best Selling Products Chart -->
+            <com.github.mikephil.charting.charts.BarChart
+                android:id="@+id/bestSellingChart"
+                android:layout_width="match_parent"
+                android:layout_height="300dp" />
+                
+        </LinearLayout>
+
+        <!-- Loading indicator -->
+        <ProgressBar
+            android:id="@+id/loadingIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="visible" />
+
+        <!-- Error message -->
         <TextView
+            android:id="@+id/errorMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Đơn gần đây"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:paddingTop="16dp"
-            android:textColor="@color/gray_dark" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_recent_orders"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingBottom="12dp"
-            android:nestedScrollingEnabled="false"
-            tools:listitem="@layout/item_recent_order" />
+            android:text="Không thể tải dữ liệu doanh thu"
+            android:textColor="@color/error_color"
+            android:textAlignment="center"
+            android:visibility="gone"
+            android:padding="16dp" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
