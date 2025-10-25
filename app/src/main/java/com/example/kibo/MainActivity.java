@@ -19,9 +19,14 @@ import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
 import com.example.kibo.models.CartItemsResponse;
 import com.example.kibo.utils.SessionManager;
+import com.example.kibo.notifications.NotificationHelper;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.WorkManager;
+import java.util.concurrent.TimeUnit;
 import android.content.Intent;
 import android.widget.Toast;
 
@@ -30,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNav;
     private ApiService apiService;
     private SessionManager sessionManager;
-    
+
     // Fragment instances for reuse
     private HomeFragment homeFragment;
     private OrdersFragment ordersFragment;
@@ -45,15 +50,16 @@ public class MainActivity extends AppCompatActivity {
         bottomNav = findViewById(R.id.bottom_navigation);
         apiService = ApiClient.getApiService();
         sessionManager = new SessionManager(this);
-        
-        // Menu is already set via XML (app:menu in activity_main.xml), avoid inflating again
-        
+
+        // Menu is already set via XML (app:menu in activity_main.xml), avoid inflating
+        // again
+
         // Initialize fragments
         initializeFragments();
 
         // Check if specific tab should be selected
         int selectedTab = getIntent().getIntExtra("selected_tab", 0);
-        
+
         // Mở mặc định trang Home hoặc tab được chỉ định
         Fragment initialFragment = getFragmentByTab(selectedTab);
         loadFragment(initialFragment);
@@ -91,9 +97,44 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Refresh cart badge immediately on launch (e.g., right after login)
-        refreshCartBadge();
-    }
+        // Post to handler to ensure bottomNav is fully initialized
+        bottomNav.post(new Runnable() {
+            @Override
+            public void run() {
+                refreshCartBadge();
+            }
+        });
 
+        // Don't clear notification - keep it to show badge on app icon
+        // Just update it silently when app is open
+
+        // Schedule periodic background worker to update app icon badge even when app is
+        // closed
+        // Uses WorkManager with a 15-minute minimum interval (system-enforced)
+        try {
+            // Run worker immediately once on app launch to set initial badge
+            androidx.work.OneTimeWorkRequest initialWorkRequest = new androidx.work.OneTimeWorkRequest.Builder(
+                    com.example.kibo.workers.CartBadgeWorker.class)
+                    .setInitialDelay(3, TimeUnit.SECONDS)
+                    .build();
+            WorkManager.getInstance(this).enqueue(initialWorkRequest);
+
+            // Then schedule periodic work for when app is closed
+            PeriodicWorkRequest workRequest = new PeriodicWorkRequest.Builder(
+                    com.example.kibo.workers.CartBadgeWorker.class,
+                    15, TimeUnit.MINUTES)
+                    .setInitialDelay(15, TimeUnit.MINUTES)
+                    .build();
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                    "cart_badge_worker",
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    workRequest);
+        } catch (Exception ignored) {
+            // If scheduling fails, we won't crash the app; worker will be scheduled when
+            // possible
+        }
+    }
 
     private void loadFragment(Fragment fragment) {
         getSupportFragmentManager()
@@ -104,23 +145,38 @@ public class MainActivity extends AppCompatActivity {
 
     // Badge helpers for cart count
     public void updateCartBadge(int count) {
-        if (bottomNav == null) return;
-        BadgeDrawable badge = bottomNav.getOrCreateBadge(R.id.nav_cart);
+        if (bottomNav == null) {
+            return;
+        }
+
+        // Remove old badge first to ensure clean state
+        bottomNav.removeBadge(R.id.nav_cart);
+
         if (count > 0) {
+            // Create new badge
+            BadgeDrawable badge = bottomNav.getOrCreateBadge(R.id.nav_cart);
             badge.setVisible(true);
             badge.setNumber(count);
             badge.setBackgroundColor(ContextCompat.getColor(this, R.color.primary_color));
             badge.setBadgeTextColor(ContextCompat.getColor(this, android.R.color.white));
-        } else {
-            badge.clearNumber();
-            badge.setVisible(false);
+            badge.setBadgeGravity(BadgeDrawable.TOP_END);
+            badge.setMaxCharacterCount(3);
+        }
+
+        // Also update app icon badge when updating bottom nav badge
+        try {
+            me.leolin.shortcutbadger.ShortcutBadger.applyCount(this, count);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     public void refreshCartBadge() {
-        if (sessionManager == null) sessionManager = new SessionManager(this);
-        if (apiService == null) apiService = ApiClient.getApiService();
-        
+        if (sessionManager == null)
+            sessionManager = new SessionManager(this);
+        if (apiService == null)
+            apiService = ApiClient.getApiService();
+
         if (!sessionManager.isLoggedIn() || !sessionManager.hasActiveCart()) {
             updateCartBadge(0);
             return;
@@ -147,55 +203,73 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(android.content.Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (intent == null || bottomNav == null) return;
+        if (intent == null || bottomNav == null)
+            return;
         int selectedTab = intent.getIntExtra("selected_tab", -1);
-        if (selectedTab == -1) return;
-        
+        if (selectedTab == -1)
+            return;
+
         Fragment target = getFragmentByTab(selectedTab);
         if (target != null) {
             loadFragment(target);
             setSelectedTab(selectedTab);
         }
     }
-    
+
     // ============ Helper Methods ============
-    
+
     private void initializeFragments() {
         homeFragment = new HomeFragment();
         ordersFragment = new OrdersFragment();
         cartFragment = new CartFragment();
         accountFragment = new AccountFragment();
     }
-    
+
     private Fragment getFragmentByTab(int tabIndex) {
         switch (tabIndex) {
-            case 0: return homeFragment;
-            case 1: return ordersFragment;
-            case 2: return cartFragment;
-            case 3: return accountFragment;
-            default: return homeFragment;
+            case 0:
+                return homeFragment;
+            case 1:
+                return ordersFragment;
+            case 2:
+                return cartFragment;
+            case 3:
+                return accountFragment;
+            default:
+                return homeFragment;
         }
     }
-    
+
     private void setSelectedTab(int tabIndex) {
         switch (tabIndex) {
-            case 0: bottomNav.setSelectedItemId(R.id.nav_home); break;
-            case 1: bottomNav.setSelectedItemId(R.id.nav_orders); break;
-            case 2: bottomNav.setSelectedItemId(R.id.nav_cart); break;
-            case 3: bottomNav.setSelectedItemId(R.id.nav_account); break;
-            default: bottomNav.setSelectedItemId(R.id.nav_home); break;
+            case 0:
+                bottomNav.setSelectedItemId(R.id.nav_home);
+                break;
+            case 1:
+                bottomNav.setSelectedItemId(R.id.nav_orders);
+                break;
+            case 2:
+                bottomNav.setSelectedItemId(R.id.nav_cart);
+                break;
+            case 3:
+                bottomNav.setSelectedItemId(R.id.nav_account);
+                break;
+            default:
+                bottomNav.setSelectedItemId(R.id.nav_home);
+                break;
         }
     }
-    
+
     // ============ Logout Functionality ============
-    
+
     /**
      * Perform logout with API call and navigate to login
      */
     public void performLogout() {
-        if (sessionManager == null) sessionManager = new SessionManager(this);
+        if (sessionManager == null)
+            sessionManager = new SessionManager(this);
         apiService = ApiClient.getApiServiceWithAuth(this);
-        
+
         sessionManager.logout(apiService, new SessionManager.LogoutCallback() {
             @Override
             public void onSuccess() {
@@ -204,7 +278,7 @@ public class MainActivity extends AppCompatActivity {
                     navigateToLogin();
                 });
             }
-            
+
             @Override
             public void onError(String errorMessage) {
                 runOnUiThread(() -> {
@@ -214,23 +288,23 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-    
+
     private void navigateToLogin() {
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
-    
+
     // ============ Session Management ============
-    
+
     /**
      * Check if user is still logged in
      */
     public boolean isUserLoggedIn() {
         return sessionManager != null && sessionManager.isLoggedIn();
     }
-    
+
     /**
      * Handle session expired
      */

@@ -71,4 +71,10 @@ dependencies {
 
     // OpenStreetMap via osmdroid (no API key required)
     implementation 'org.osmdroid:osmdroid-android:6.1.18'
+    
+    // WorkManager for background tasks
+    implementation 'androidx.work:work-runtime:2.8.1'
+    
+    // ShortcutBadger for app icon badge (supports multiple launchers)
+    implementation 'me.leolin:ShortcutBadger:1.1.22@aar'
 }
