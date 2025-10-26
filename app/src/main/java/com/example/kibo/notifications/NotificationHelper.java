@@ -59,6 +59,12 @@ public class NotificationHelper {
             e.printStackTrace();
         }
 
+        // If count is 0, clear notification and badge
+        if (count == 0) {
+            clearCartNotification(context);
+            return;
+        }
+
         // Check notification permission on Android 13+ (API 33+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(context,
@@ -80,9 +86,7 @@ public class NotificationHelper {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         String title = "Giỏ hàng của bạn";
-        String text = count > 0
-                ? String.format("Bạn có %d sản phẩm trong giỏ hàng", count)
-                : "Giỏ hàng trống";
+        String text = String.format("Bạn có %d sản phẩm trong giỏ hàng", count);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CART_CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher) // Use app icon (should be adaptive)
