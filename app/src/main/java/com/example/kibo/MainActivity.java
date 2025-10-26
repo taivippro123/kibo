@@ -169,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+
         // Update notification to reflect badge on app icon
         if (count > 0) {
             NotificationHelper.showCartNotification(this, count);
