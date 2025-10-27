@@ -35,9 +35,9 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CartFragment extends Fragment {
-    
+
     private static final String TAG = "CartFragment";
-    
+
     private SessionManager sessionManager;
     private ApiService apiService;
     private RecyclerView recyclerViewCartItems;
@@ -45,34 +45,34 @@ public class CartFragment extends Fragment {
     private TextView textViewEmptyCart;
     private TextView textViewItemCount;
     private Button buttonContinue;
-    
+
     private CartItemAdapter cartItemAdapter;
     private List<CartItem> cartItems = new ArrayList<>();
-    
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+            Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_cart, container, false);
-        
+
         // Initialize services
         sessionManager = new SessionManager(requireContext());
         apiService = ApiClient.getApiService();
-        
+
         // Initialize views
         initViews(view);
-        
+
         // Setup recycler view
         setupRecyclerView();
-        
+
         // Setup click listeners
         setupClickListeners();
-        
+
         // Load cart items
         loadCartItems();
-        
+
         return view;
     }
-    
+
     private void initViews(View view) {
         recyclerViewCartItems = view.findViewById(R.id.recycler_view_cart_items);
         layoutEmptyCart = view.findViewById(R.id.layout_empty_cart);
@@ -80,7 +80,7 @@ public class CartFragment extends Fragment {
         textViewItemCount = view.findViewById(R.id.text_view_item_count);
         buttonContinue = view.findViewById(R.id.button_continue);
     }
-    
+
     private void setupRecyclerView() {
         cartItemAdapter = new CartItemAdapter(cartItems);
         cartItemAdapter.setOnQuantityClickListener(new CartItemAdapter.OnQuantityClickListener() {
@@ -97,7 +97,7 @@ public class CartFragment extends Fragment {
         recyclerViewCartItems.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerViewCartItems.setAdapter(cartItemAdapter);
     }
-    
+
     private void setupClickListeners() {
         // Continue button click listener
         buttonContinue.setOnClickListener(new View.OnClickListener() {
@@ -112,7 +112,7 @@ public class CartFragment extends Fragment {
             }
         });
     }
-    
+
     private void showEditQuantityDialog(CartItem item) {
         View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_quantity, null);
         TextView textProductName = dialogView.findViewById(R.id.text_product_name);
@@ -131,7 +131,8 @@ public class CartFragment extends Fragment {
 
         btnDecrease.setOnClickListener(v -> {
             int q = Integer.parseInt(textQuantity.getText().toString());
-            if (q > 1) textQuantity.setText(String.valueOf(q - 1));
+            if (q > 1)
+                textQuantity.setText(String.valueOf(q - 1));
         });
         btnIncrease.setOnClickListener(v -> {
             int q = Integer.parseInt(textQuantity.getText().toString());
@@ -148,55 +149,64 @@ public class CartFragment extends Fragment {
     }
 
     private void updateQuantity(int productId, int quantity) {
-        if (!sessionManager.hasActiveCart()) return;
+        if (!sessionManager.hasActiveCart())
+            return;
         int cartId = sessionManager.getActiveCartId();
         UpdateQuantityRequest request = new UpdateQuantityRequest(cartId, productId, quantity);
-        apiService.updateCartItemQuantity(request).enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
-            @Override
-            public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
-                if (response.isSuccessful()) {
-                    // reload cart items
-                    loadCartItems();
-                } else {
-                    Log.e(TAG, "Update quantity failed: " + response.code());
-                }
-            }
+        apiService.updateCartItemQuantity(request)
+                .enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call,
+                            retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
+                        if (response.isSuccessful()) {
+                            // reload cart items
+                            loadCartItems();
+                        } else {
+                            Log.e(TAG, "Update quantity failed: " + response.code());
+                        }
+                    }
 
-            @Override
-            public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
-                Log.e(TAG, "Update quantity error: " + t.getMessage());
-            }
-        });
+                    @Override
+                    public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call,
+                            Throwable t) {
+                        Log.e(TAG, "Update quantity error: " + t.getMessage());
+                    }
+                });
     }
 
     private void confirmRemove(CartItem item) {
         new android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Xóa sản phẩm")
-            .setMessage("Bạn có chắc muốn xóa '" + item.getProductName() + "' khỏi giỏ hàng?")
-            .setNegativeButton("Hủy", null)
-            .setPositiveButton("Xóa", (d, w) -> removeItem(item))
-            .show();
+                .setTitle("Xóa sản phẩm")
+                .setMessage("Bạn có chắc muốn xóa '" + item.getProductName() + "' khỏi giỏ hàng?")
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xóa", (d, w) -> removeItem(item))
+                .show();
     }
 
     private void removeItem(CartItem item) {
-        if (!sessionManager.hasActiveCart()) return;
+        if (!sessionManager.hasActiveCart())
+            return;
         int cartId = sessionManager.getActiveCartId();
-        com.example.kibo.models.RemoveCartItemRequest request = new com.example.kibo.models.RemoveCartItemRequest(cartId, item.getProductId());
-        apiService.removeCartItem(request).enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
-            @Override
-            public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
-                if (response.isSuccessful()) {
-                    loadCartItems();
-                } else {
-                    Log.e(TAG, "Remove item failed: " + response.code());
-                }
-            }
+        com.example.kibo.models.RemoveCartItemRequest request = new com.example.kibo.models.RemoveCartItemRequest(
+                cartId, item.getProductId());
+        apiService.removeCartItem(request)
+                .enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call,
+                            retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
+                        if (response.isSuccessful()) {
+                            loadCartItems();
+                        } else {
+                            Log.e(TAG, "Remove item failed: " + response.code());
+                        }
+                    }
 
-            @Override
-            public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
-                Log.e(TAG, "Remove item error: " + t.getMessage());
-            }
-        });
+                    @Override
+                    public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call,
+                            Throwable t) {
+                        Log.e(TAG, "Remove item error: " + t.getMessage());
+                    }
+                });
     }
 
     private void loadCartItems() {
@@ -205,16 +215,16 @@ public class CartFragment extends Fragment {
             showEmptyState();
             return;
         }
-        
+
         // Check if user has an active cart
         if (!sessionManager.hasActiveCart()) {
             showEmptyState();
             return;
         }
-        
+
         int cartId = sessionManager.getActiveCartId();
         Log.d(TAG, "Loading cart items for cart ID: " + cartId);
-        
+
         Call<CartItemsResponse> call = apiService.getCartItems(cartId);
         call.enqueue(new Callback<CartItemsResponse>() {
             @Override
@@ -222,21 +232,21 @@ public class CartFragment extends Fragment {
                 if (response.isSuccessful() && response.body() != null) {
                     CartItemsResponse cartItemsResponse = response.body();
                     List<CartItem> items = cartItemsResponse.getData();
-                    
+
                     if (items.isEmpty()) {
                         showEmptyState();
                     } else {
                         // Load detailed product info for each cart item
                         loadProductDetails(items);
                     }
-                    
+
                     Log.d(TAG, "Loaded " + items.size() + " cart items");
                 } else {
                     Log.e(TAG, "Failed to load cart items: " + response.code());
                     showEmptyState();
                 }
             }
-            
+
             @Override
             public void onFailure(Call<CartItemsResponse> call, Throwable t) {
                 Log.e(TAG, "Error loading cart items: " + t.getMessage());
@@ -244,19 +254,19 @@ public class CartFragment extends Fragment {
             }
         });
     }
-    
+
     private void loadProductDetails(List<CartItem> items) {
         cartItems.clear();
         cartItems.addAll(items);
-        
+
         // Load product details for each item
         for (CartItem cartItem : cartItems) {
             loadProductDetail(cartItem);
         }
-        
+
         showCartItems();
     }
-    
+
     private void loadProductDetail(CartItem cartItem) {
         Call<ProductResponse> call = apiService.getProductById(cartItem.getProductId());
         call.enqueue(new Callback<ProductResponse>() {
@@ -266,29 +276,29 @@ public class CartFragment extends Fragment {
                     ProductResponse productResponse = response.body();
                     if (productResponse.getData() != null && !productResponse.getData().isEmpty()) {
                         Product product = productResponse.getData().get(0);
-                        
+
                         // Update cart item with product details
                         cartItem.setProductName(product.getProductName());
                         cartItem.setPrice(product.getPrice());
                         cartItem.setImageUrl(product.getImageUrl());
-                        
+
                         // Update adapter
                         cartItemAdapter.updateCartItems(cartItems);
-                        
+
                         Log.d(TAG, "Loaded product details for: " + product.getProductName());
                     }
                 } else {
                     Log.e(TAG, "Failed to load product details for ID: " + cartItem.getProductId());
                 }
             }
-            
+
             @Override
             public void onFailure(Call<ProductResponse> call, Throwable t) {
                 Log.e(TAG, "Error loading product details: " + t.getMessage());
             }
         });
     }
-    
+
     private void showEmptyState() {
         // Show empty state and hide cart items
         layoutEmptyCart.setVisibility(View.VISIBLE);
@@ -299,13 +309,13 @@ public class CartFragment extends Fragment {
             ((com.example.kibo.MainActivity) getActivity()).updateCartBadge(0);
         }
     }
-    
+
     private void showCartItems() {
         // Show cart items and hide empty state
         layoutEmptyCart.setVisibility(View.GONE);
         recyclerViewCartItems.setVisibility(View.VISIBLE);
         buttonContinue.setVisibility(View.VISIBLE);
-        
+
         // Update item count
         int totalItems = cartItems.size();
         textViewItemCount.setText(totalItems + " sản phẩm");
@@ -315,7 +325,7 @@ public class CartFragment extends Fragment {
             ((com.example.kibo.MainActivity) getActivity()).updateCartBadge(totalItems);
         }
     }
-    
+
     @Override
     public void onResume() {
         super.onResume();
