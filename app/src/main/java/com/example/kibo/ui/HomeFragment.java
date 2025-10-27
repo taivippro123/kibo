@@ -4,10 +4,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -40,6 +43,9 @@ public class HomeFragment extends Fragment {
     private ViewPager2 bannerViewPager;
     private Handler autoScrollHandler;
     private Runnable autoScrollRunnable;
+    private EditText etSearch;
+    private List<Product> allProducts;
+    private Handler searchHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -56,6 +62,10 @@ public class HomeFragment extends Fragment {
         // Initialize adapter with empty list
         productAdapter = new ProductAdapter(new ArrayList<>());
         productsRecycler.setAdapter(productAdapter);
+
+        // Setup search functionality
+        etSearch = root.findViewById(R.id.et_search);
+        setupSearch();
 
         // Wishlist button click
         ImageButton btnWishlist = root.findViewById(R.id.btn_wishlist);
@@ -75,6 +85,49 @@ public class HomeFragment extends Fragment {
         loadProducts();
 
         return root;
+    }
+
+    private void setupSearch() {
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // Debounce search to avoid too many filter operations
+                searchHandler.removeCallbacksAndMessages(null);
+                searchHandler.postDelayed(() -> filterProducts(s.toString()), 300);
+            }
+        });
+    }
+
+    private void filterProducts(String query) {
+        if (allProducts == null || allProducts.isEmpty()) {
+            return;
+        }
+
+        if (query == null || query.trim().isEmpty()) {
+            // Show all products if search is empty
+            productAdapter.updateProducts(allProducts);
+            return;
+        }
+
+        // Filter products by name
+        List<Product> filteredProducts = new ArrayList<>();
+        String searchQuery = query.toLowerCase().trim();
+        
+        for (Product product : allProducts) {
+            String productName = product.getProductName().toLowerCase();
+            if (productName.contains(searchQuery)) {
+                filteredProducts.add(product);
+            }
+        }
+
+        productAdapter.updateProducts(filteredProducts);
+        Log.d(TAG, "Filtered products: " + filteredProducts.size() + " matching '" + query + "'");
     }
 
     private void setupBannerCarousel() {
@@ -129,6 +182,8 @@ public class HomeFragment extends Fragment {
                         Log.d(TAG, "Products list size: " + products.size());
                         
                         if (!products.isEmpty()) {
+                            // Store all products for search functionality
+                            allProducts = products;
                             productAdapter.updateProducts(products);
                             Log.d(TAG, "Successfully loaded " + products.size() + " products");
                             
