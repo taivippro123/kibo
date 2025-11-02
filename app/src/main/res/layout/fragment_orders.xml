@@ -36,11 +36,17 @@
         app:tabSelectedTextColor="@color/red_dark"
         app:tabTextColor="@color/gray_dark" />
 
-    <!-- Pager -->
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/view_pager"
+    <!-- Pager wrapped for pull-to-refresh -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
+
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/view_pager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 </LinearLayout>

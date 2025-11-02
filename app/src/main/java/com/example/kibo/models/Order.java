@@ -1,8 +1,9 @@
 package com.example.kibo.models;
 
 import com.google.gson.annotations.SerializedName;
+import java.io.Serializable;
 
-public class Order {
+public class Order implements Serializable {
     @SerializedName("orderid")
     private int orderId;
     @SerializedName("ordercode")

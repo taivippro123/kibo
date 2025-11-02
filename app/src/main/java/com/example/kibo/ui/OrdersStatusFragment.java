@@ -24,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.view.View;
+import android.util.Log;
 
 public class OrdersStatusFragment extends Fragment {
     private static final String ARG_STATUS = "status";
@@ -31,6 +32,7 @@ public class OrdersStatusFragment extends Fragment {
     private LinearLayout layoutEmptyOrders;
     private RecyclerView recyclerViewOrders;
     private OrdersAdapter adapter;
+    private String statusFilter;
 
     public static OrdersStatusFragment newInstance(String status) {
         OrdersStatusFragment fragment = new OrdersStatusFragment();
@@ -53,33 +55,68 @@ public class OrdersStatusFragment extends Fragment {
         adapter = new OrdersAdapter(this);
         recyclerViewOrders.setAdapter(adapter);
 
-        // Load orders for current user
-        loadOrders();
+        // Remember status filter
+        statusFilter = getArguments() != null ? getArguments().getString(ARG_STATUS) : "ALL";
 
         return root;
     }
-    
-    private void loadOrders() {
-        SessionManager sm = new SessionManager(requireContext());
-        int userId = sm.getUserId();
-        ApiService api = ApiClient.getApiService();
-        api.getOrders(userId).enqueue(new retrofit2.Callback<java.util.List<Order>>() {
-            @Override
-            public void onResponse(retrofit2.Call<java.util.List<Order>> call, retrofit2.Response<java.util.List<Order>> response) {
-                if (!isAdded()) return;
-                if (response.isSuccessful() && response.body() != null) {
-                    adapter.setOrders(response.body());
-                } else {
-                    adapter.setOrders(new java.util.ArrayList<>());
-                }
-            }
 
-            @Override
-            public void onFailure(retrofit2.Call<java.util.List<Order>> call, Throwable t) {
-                if (!isAdded()) return;
-                adapter.setOrders(new java.util.ArrayList<>());
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        // Try to get cached orders from parent immediately
+        Fragment parent = getParentFragment();
+        if (parent instanceof OrdersFragment) {
+            ((OrdersFragment) parent).dispatchCachedOrdersToChildren();
+        }
+    }
+
+    // Receive orders from parent cache and render filtered list
+    public void updateOrders(java.util.List<Order> allOrders) {
+        if (!isAdded() || allOrders == null) return;
+        java.util.List<Order> filtered = filterOrdersByStatus(allOrders, statusFilter);
+        adapter.setOrders(filtered);
+    }
+    
+    private java.util.List<Order> filterOrdersByStatus(java.util.List<Order> orders, String statusFilter) {
+        if (statusFilter == null || "ALL".equals(statusFilter)) {
+            return orders;
+        }
+        
+        java.util.List<Order> filtered = new java.util.ArrayList<>();
+        for (Order order : orders) {
+            int orderStatus = order.getOrderStatus();
+            boolean shouldInclude = false;
+            
+            switch (statusFilter) {
+                case "READY_TO_PICK":
+                    // Chờ lấy hàng: 0 (ready_to_pick), 2 (picking)
+                    shouldInclude = orderStatus == 0 || orderStatus == 2;
+                    break;
+                case "DELIVERING":
+                    // Chờ giao hàng: 3 (picked), 4 (delivering)
+                    shouldInclude = orderStatus == 3 || orderStatus == 4;
+                    break;
+                case "DELIVERED":
+                    // Đã giao: 5 (delivered)
+                    shouldInclude = orderStatus == 5;
+                    break;
+                case "RETURNED":
+                    // Trả hàng: 7 (return), 8 (returned)
+                    shouldInclude = orderStatus == 7 || orderStatus == 8;
+                    break;
+                case "CANCELLED":
+                    // Đã hủy: 1 (cancel)
+                    shouldInclude = orderStatus == 1;
+                    break;
             }
-        });
+            
+            if (shouldInclude) {
+                filtered.add(order);
+            }
+        }
+        
+        return filtered;
     }
     
     public void showEmptyState() {
@@ -90,6 +127,17 @@ public class OrdersStatusFragment extends Fragment {
     public void showOrders() {
         layoutEmptyOrders.setVisibility(View.GONE);
         recyclerViewOrders.setVisibility(View.VISIBLE);
+    }
+
+    private void navigateToOrderDetail(Order order) {
+        if (getActivity() != null) {
+            OrderDetailFragement detailFragment = OrderDetailFragement.newInstance(order);
+            // Replace in the main activity container (full screen replacement)
+            getActivity().getSupportFragmentManager().beginTransaction()
+                .replace(R.id.frame_container, detailFragment)
+                .addToBackStack(null)
+                .commit();
+        }
     }
 
     private static class OrdersAdapter extends RecyclerView.Adapter<OrderVH> {
@@ -120,8 +168,14 @@ public class OrdersStatusFragment extends Fragment {
 
         @Override public void onBindViewHolder(@NonNull OrderVH holder, int position) {
             Order o = orders.get(position);
-            holder.tvStatus.setText(String.valueOf(o.getOrderStatus()));
+            String statusText = getStatusText(o.getOrderStatus());
+            holder.tvStatus.setText(statusText);
             holder.tvOrderCode.setText("Mã đơn: " + (o.getOrderCode() != null ? o.getOrderCode() : ""));
+
+            // Set click listener to navigate to order detail
+            holder.itemView.setOnClickListener(v -> {
+                fragment.navigateToOrderDetail(o);
+            });
 
             // Fetch first order detail
             ApiService api = ApiClient.getApiService();
@@ -189,6 +243,21 @@ public class OrdersStatusFragment extends Fragment {
         }
 
         @Override public int getItemCount() { return orders.size(); }
+        
+        private String getStatusText(int orderStatus) {
+            switch (orderStatus) {
+                case 0: return "Chờ lấy hàng";
+                case 1: return "Đã hủy";
+                case 2: return "Đang lấy hàng";
+                case 3: return "Đã lấy hàng";
+                case 4: return "Đang giao hàng";
+                case 5: return "Đã giao";
+                case 6: return "Giao hàng thất bại";
+                case 7: return "Đang trả hàng";
+                case 8: return "Đã trả hàng";
+                default: return "Không xác định";
+            }
+        }
     }
 
     private static class OrderVH extends RecyclerView.ViewHolder {

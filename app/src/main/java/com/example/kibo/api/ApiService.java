@@ -225,6 +225,10 @@ public interface ApiService {
         @GET("Orders")
         Call<java.util.List<Order>> getOrders(@Query("UserId") int userId);
 
+        // Sync all orders with GHN (server-side)
+        @POST("Shipping/orders/sync-with-ghn")
+        Call<Object> syncOrdersWithGHN();
+
         @GET("OrderDetails")
         Call<OrderDetailsResponse> getOrderDetails(@Query("OrderId") int orderId);
 
@@ -328,4 +332,8 @@ public interface ApiService {
 
         @DELETE("Wishlist/by-user-product")
         Call<ApiResponse<String>> removeFromWishlist(@Query("userId") int userId, @Query("productId") int productId);
+
+        // GHN Tracking endpoint (direct API call to GHN)
+        @POST("https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/detail")
+        Call<Object> getGHNTrackingDetail(@retrofit2.http.Header("Token") String token, @Body Object requestBody);
 }
