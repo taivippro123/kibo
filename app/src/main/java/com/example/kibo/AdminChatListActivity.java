@@ -26,6 +26,9 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import android.view.MenuItem;
+import androidx.annotation.NonNull;
 
 public class AdminChatListActivity extends AppCompatActivity implements AdminConversationAdapter.OnConversationClickListener {
 
@@ -33,6 +36,7 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
     private RecyclerView rvAdminConversations;
     private ProgressBar progressBar;
     private LinearLayout layoutEmpty;
+    private BottomNavigationView bottomNav;
     
     private AdminConversationAdapter adapter;
     private List<ConversationResponse> conversations;
@@ -52,6 +56,7 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
 
         initializeViews();
         setupToolbar();
+        setupBottomNav();
         setupRecyclerView();
         
         // Get admin ID from session (assuming admin is logged in)
@@ -74,6 +79,40 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
         rvAdminConversations = findViewById(R.id.rv_admin_conversations);
         progressBar = findViewById(R.id.progress_bar_admin_chat);
         layoutEmpty = findViewById(R.id.layout_empty_admin_chat);
+        bottomNav = findViewById(R.id.admin_bottom_nav);
+    }
+
+    private void setupBottomNav() {
+        if (bottomNav == null) return;
+        bottomNav.setSelectedItemId(R.id.nav_admin_messages);
+        bottomNav.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                int id = item.getItemId();
+                if (id == R.id.nav_admin_dashboard) {
+                    Intent intent = new Intent(AdminChatListActivity.this, AdminMainActivity.class);
+                    intent.putExtra("fragment", "dashboard");
+                    startActivity(intent);
+                    finish();
+                    return true;
+                } else if (id == R.id.nav_admin_products) {
+                    Intent intent = new Intent(AdminChatListActivity.this, AdminManagementActivity.class);
+                    startActivity(intent);
+                    finish();
+                    return true;
+                } else if (id == R.id.nav_admin_messages) {
+                    // already here
+                    return true;
+                } else if (id == R.id.nav_admin_account) {
+                    Intent intent = new Intent(AdminChatListActivity.this, AdminMainActivity.class);
+                    intent.putExtra("fragment", "account");
+                    startActivity(intent);
+                    finish();
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     private void setupToolbar() {
@@ -247,6 +286,15 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
             // No conversation context at list level; just stop
             signalRManager.stop(-1);
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        Intent intent = new Intent(this, AdminMainActivity.class);
+        intent.putExtra("fragment", "dashboard");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 
     @Override
