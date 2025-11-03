@@ -232,6 +232,151 @@ public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCal
     }
 
     /**
+     * Get directions from Google Directions API
+     * API Documentation:
+     * https://developers.google.com/maps/documentation/directions/start
+     */
+    private void getDirectionsFromGoogleAPI(LatLng origin, LatLng destination) {
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                // Build Google Directions API URL
+                String urlString = "https://maps.googleapis.com/maps/api/directions/json?" +
+                        "origin=" + origin.latitude + "," + origin.longitude +
+                        "&destination=" + destination.latitude + "," + destination.longitude +
+                        "&mode=driving" +
+                        "&key=" + GOOGLE_API_KEY;
+
+                Log.d(TAG, "Calling Google Directions API...");
+
+                URL url = new URL(urlString);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Accept", "application/json");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+
+                int responseCode = conn.getResponseCode();
+                Log.d(TAG, "Response Code: " + responseCode);
+
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    throw new Exception("API returned error code: " + responseCode);
+                }
+
+                // Read response
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                // Parse JSON response
+                JSONObject jsonResponse = new JSONObject(response.toString());
+                String status = jsonResponse.getString("status");
+
+                if (!status.equals("OK")) {
+                    throw new Exception("API status: " + status);
+                }
+
+                JSONArray routes = jsonResponse.getJSONArray("routes");
+                if (routes.length() == 0) {
+                    throw new Exception("No routes found");
+                }
+
+                JSONObject route = routes.getJSONObject(0);
+                JSONArray legs = route.getJSONArray("legs");
+                JSONObject leg = legs.getJSONObject(0);
+
+                // Get distance and duration
+                JSONObject distance = leg.getJSONObject("distance");
+                JSONObject duration = leg.getJSONObject("duration");
+
+                String distanceText = distance.getString("text");
+                String durationText = duration.getString("text");
+                double distanceMeters = distance.getDouble("value");
+                double durationSeconds = duration.getDouble("value");
+
+                // Format for display
+                String distText = "🚗 Khoảng cách: " + distanceText;
+                String timeText = "⏱️ Thời gian: " + durationText;
+
+                Log.d(TAG, distText + ", " + timeText);
+
+                // Get route polyline
+                JSONObject overviewPolyline = route.getJSONObject("overview_polyline");
+                String encodedPolyline = overviewPolyline.getString("points");
+                List<LatLng> routePoints = decodePolyline(encodedPolyline);
+
+                Log.d(TAG, "Route has " + routePoints.size() + " points");
+
+                // Update UI on main thread
+                handler.post(() -> {
+                    if (!isFinishing()) {
+                        tvDistance.setText(distText);
+                        tvDuration.setText(timeText);
+                        drawRoute(routePoints);
+                        Toast.makeText(this, "✅ Đã tính xong đường đi!", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error calling Google Directions API", e);
+                handler.post(() -> {
+                    if (!isFinishing()) {
+                        Toast.makeText(this, "❌ Lỗi: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+            } finally {
+                if (conn != null) {
+                    try {
+                        conn.disconnect();
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * Decode Google's encoded polyline string into list of LatLng points
+     * Algorithm:
+     * https://developers.google.com/maps/documentation/utilities/polylinealgorithm
+     */
+    private List<LatLng> decodePolyline(String encoded) {
+        List<LatLng> poly = new ArrayList<>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            LatLng p = new LatLng((double) lat / 1E5, (double) lng / 1E5);
+            poly.add(p);
+        }
+
+        return poly;
+    }
+
+    /**
      * Get directions from OpenRouteService API (Free alternative to Google
      * Directions)
      * API Documentation: https://openrouteservice.org/dev/#/api-docs/v2/directions
@@ -240,20 +385,23 @@ public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCal
         new Thread(() -> {
             HttpURLConnection conn = null;
             try {
-                // Build API URL with api_key in query string
+                // Build API URL - format: start=longitude,latitude&end=longitude,latitude
                 String urlString = "https://api.openrouteservice.org/v2/directions/driving-car?" +
                         "api_key=" + ORS_API_KEY +
                         "&start=" + origin.longitude + "," + origin.latitude +
                         "&end=" + destination.longitude + "," + destination.latitude;
 
                 Log.d(TAG, "Calling OpenRouteService API...");
+                Log.d(TAG, "URL: " + urlString);
 
                 URL url = new URL(urlString);
                 conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                conn.setRequestProperty("Accept", "application/json");
-                conn.setConnectTimeout(8000);
-                conn.setReadTimeout(8000);
+                conn.setRequestProperty("Accept",
+                        "application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8");
+                conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
 
                 int responseCode = conn.getResponseCode();
                 Log.d(TAG, "Response Code: " + responseCode);
@@ -282,8 +430,8 @@ public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCal
                 double distanceKm = summary.getDouble("distance") / 1000;
                 int durationMin = (int) (summary.getDouble("duration") / 60);
 
-                String distText = String.format("🏍️ Khoảng cách: %.2f km", distanceKm);
-                String timeText = "⏱️ Thời gian: " + durationMin + " phút";
+                String distText = String.format("Khoảng cách: %.2f km", distanceKm);
+                String timeText = "Thời gian dự kiến: " + durationMin + " phút";
 
                 Log.d(TAG, distText + ", " + timeText);
 
