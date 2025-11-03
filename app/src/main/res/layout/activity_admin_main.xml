@@ -12,13 +12,14 @@
         android:layout_height="wrap_content"
         android:background="@color/primary_color"
         android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-        app:title="Admin Panel"
+        app:title="Quản lý đơn hàng"
         app:titleCentered="true" />
 
     <FrameLayout
         android:id="@+id/admin_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
         android:layout_marginBottom="56dp" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView

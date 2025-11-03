@@ -47,6 +47,16 @@ public class OrdersFragment extends Fragment {
         swipeRefreshLayout = view.findViewById(R.id.swipe_refresh);
         viewPager = view.findViewById(R.id.view_pager);
 
+        // Hide fragment header when running inside Admin (use Admin toolbar instead)
+        View adminContainer = getActivity() != null ? getActivity().findViewById(R.id.admin_container) : null;
+        if (adminContainer != null) {
+            View header = view.findViewById(R.id.header_orders);
+            if (header != null) header.setVisibility(View.GONE);
+            if (getActivity() instanceof com.example.kibo.AdminMainActivity) {
+                ((com.example.kibo.AdminMainActivity) getActivity()).setToolbarTitle("Quản lý đơn hàng");
+            }
+        }
+
         // Disable state restoration to avoid ViewPager2 restoring stale fragment keys
         viewPager.setSaveEnabled(false);
 
@@ -132,8 +142,11 @@ public class OrdersFragment extends Fragment {
     private void loadOrdersFromServer() {
         SessionManager sm = new SessionManager(requireContext());
         int userId = sm.getUserId();
+        boolean isAdmin = false;
+        try { isAdmin = sm.getUserRole() == 0; } catch (Exception ignored) { }
         ApiService api = ApiClient.getApiService();
-        api.getOrders(userId).enqueue(new retrofit2.Callback<java.util.List<Order>>() {
+        retrofit2.Call<java.util.List<Order>> call = isAdmin ? api.getAllOrders() : api.getOrders(userId);
+        call.enqueue(new retrofit2.Callback<java.util.List<Order>>() {
             @Override public void onResponse(retrofit2.Call<java.util.List<Order>> call, retrofit2.Response<java.util.List<Order>> response) {
                 if (!isAdded()) return;
                 swipeRefreshLayout.setRefreshing(false);

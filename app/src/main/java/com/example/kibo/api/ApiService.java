@@ -225,6 +225,10 @@ public interface ApiService {
         @GET("Orders")
         Call<java.util.List<Order>> getOrders(@Query("UserId") int userId);
 
+        // Admin: get all orders (no user filter)
+        @GET("Orders")
+        Call<java.util.List<Order>> getAllOrders();
+
         // Sync all orders with GHN (server-side)
         @POST("Shipping/orders/sync-with-ghn")
         Call<Object> syncOrdersWithGHN();

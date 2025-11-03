@@ -131,10 +131,18 @@ public class OrdersStatusFragment extends Fragment {
 
     private void navigateToOrderDetail(Order order) {
         if (getActivity() != null) {
-            OrderDetailFragement detailFragment = OrderDetailFragement.newInstance(order);
-            // Replace in the main activity container (full screen replacement)
+            Fragment detailFragment = OrderDetailFragement.newInstance(order);
+            int containerId = R.id.frame_container;
+            android.view.View adminContainer = getActivity().findViewById(R.id.admin_container);
+            if (adminContainer != null) {
+                containerId = R.id.admin_container;
+            }
+            // Update admin toolbar title if in admin flow
+            if (getActivity() instanceof com.example.kibo.AdminMainActivity && getActivity().findViewById(R.id.admin_container) != null) {
+                ((com.example.kibo.AdminMainActivity) getActivity()).setToolbarTitle("Chi tiết đơn hàng");
+            }
             getActivity().getSupportFragmentManager().beginTransaction()
-                .replace(R.id.frame_container, detailFragment)
+                .replace(containerId, detailFragment)
                 .addToBackStack(null)
                 .commit();
         }

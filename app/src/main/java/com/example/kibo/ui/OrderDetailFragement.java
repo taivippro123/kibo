@@ -39,11 +39,16 @@ public class OrderDetailFragement extends Fragment {
     private TextView tvQuantity;
     private TextView tvPaymentMethod;
     private TextView tvPaymentStatus;
+    private TextView tvCustomerLabel;
+    private TextView tvCustomerName;
     private LinearLayout timelineContainer;
     private TextView tvStage1, tvStage2, tvStage3;
     private android.widget.ImageView checkStage1, checkStage2, checkStage3;
 
     private Order order;
+    private View adminToolbar;
+    private View adminContainer;
+    private int originalTopMargin = -1;
 
     public static OrderDetailFragement newInstance(Order order) {
         OrderDetailFragement fragment = new OrderDetailFragement();
@@ -76,6 +81,8 @@ public class OrderDetailFragement extends Fragment {
         tvQuantity = root.findViewById(R.id.tv_quantity);
         tvPaymentMethod = root.findViewById(R.id.tv_payment_method);
         tvPaymentStatus = root.findViewById(R.id.tv_payment_status);
+        tvCustomerLabel = root.findViewById(R.id.tv_customer_label);
+        tvCustomerName = root.findViewById(R.id.tv_customer_name);
         timelineContainer = root.findViewById(R.id.timeline_container);
         tvStage1 = root.findViewById(R.id.tv_stage1);
         tvStage2 = root.findViewById(R.id.tv_stage2);
@@ -83,6 +90,46 @@ public class OrderDetailFragement extends Fragment {
         checkStage1 = root.findViewById(R.id.checkStage1);
         checkStage2 = root.findViewById(R.id.checkStage2);
         checkStage3 = root.findViewById(R.id.checkStage3);
+
+        // Ensure header content is visible under status bar/cutout when toolbar is hidden
+        try {
+            final View header = root.findViewById(R.id.header_order_detail);
+            if (header != null) {
+                androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(header, (v, insets) -> {
+                    int topInset = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars()).top;
+                    v.setPadding(v.getPaddingLeft(), topInset, v.getPaddingRight(), v.getPaddingBottom());
+                    return insets;
+                });
+                // Request insets now
+                androidx.core.view.ViewCompat.requestApplyInsets(header);
+            }
+        } catch (Exception ignored) { }
+
+        // If in admin flow, hide activity toolbar so only fragment header shows
+        if (getActivity() != null) {
+            adminToolbar = getActivity().findViewById(R.id.admin_toolbar);
+            if (adminToolbar != null) {
+                adminToolbar.setVisibility(View.GONE);
+            }
+            // Remove top margin from admin_container so header sticks to top
+            adminContainer = getActivity().findViewById(R.id.admin_container);
+            if (adminContainer != null && adminContainer.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams) {
+                android.view.ViewGroup.MarginLayoutParams lp = (android.view.ViewGroup.MarginLayoutParams) adminContainer.getLayoutParams();
+                originalTopMargin = lp.topMargin;
+                lp.topMargin = 0;
+                adminContainer.setLayoutParams(lp);
+            }
+        }
+
+        // If opened from admin flow, hide fragment header and set admin toolbar title
+        View adminContainer = getActivity() != null ? getActivity().findViewById(R.id.admin_container) : null;
+        if (adminContainer != null) {
+            View header = root.findViewById(R.id.header_order_detail);
+            if (header != null) header.setVisibility(View.GONE);
+            if (getActivity() instanceof com.example.kibo.AdminMainActivity) {
+                ((com.example.kibo.AdminMainActivity) getActivity()).setToolbarTitle("Chi tiết đơn hàng");
+            }
+        }
 
         // Setup back button
         btnBack.setOnClickListener(v -> {
@@ -98,6 +145,23 @@ public class OrderDetailFragement extends Fragment {
         }
 
         return root;
+    }
+
+    @Override
+    public void onDestroyView() {
+        // Restore admin toolbar visibility when leaving detail in admin flow
+        if (adminToolbar != null) {
+            adminToolbar.setVisibility(View.VISIBLE);
+            adminToolbar = null;
+        }
+        if (adminContainer != null && originalTopMargin >= 0 && adminContainer.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams) {
+            android.view.ViewGroup.MarginLayoutParams lp = (android.view.ViewGroup.MarginLayoutParams) adminContainer.getLayoutParams();
+            lp.topMargin = originalTopMargin;
+            adminContainer.setLayoutParams(lp);
+            adminContainer = null;
+            originalTopMargin = -1;
+        }
+        super.onDestroyView();
     }
 
     private void loadOrderDetails() {
@@ -181,6 +245,26 @@ public class OrderDetailFragement extends Fragment {
         } else {
             tvPaymentMethod.setText("Chưa có");
             tvPaymentStatus.setText("Chưa có");
+        }
+
+        // If opened from admin flow, show customer name (Users?Userid=...)
+        View adminContainer = getActivity() != null ? getActivity().findViewById(R.id.admin_container) : null;
+        if (adminContainer != null) {
+            try {
+                ApiService apiForUser = ApiClient.getApiService();
+                apiForUser.getUserById(order.getUserId()).enqueue(new retrofit2.Callback<com.example.kibo.models.UserResponse>() {
+                    @Override public void onResponse(retrofit2.Call<com.example.kibo.models.UserResponse> call, retrofit2.Response<com.example.kibo.models.UserResponse> response) {
+                        if (!isAdded()) return;
+                        if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
+                            String name = response.body().getData().get(0).getUsername();
+                            tvCustomerLabel.setVisibility(View.VISIBLE);
+                            tvCustomerName.setVisibility(View.VISIBLE);
+                            tvCustomerName.setText(name != null ? name : "");
+                        }
+                    }
+                    @Override public void onFailure(retrofit2.Call<com.example.kibo.models.UserResponse> call, Throwable t) { }
+                });
+            } catch (Exception ignored) { }
         }
     }
 
