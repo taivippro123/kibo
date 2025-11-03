@@ -301,7 +301,7 @@ public class AdminDashboardFragment extends Fragment {
                         
                         // Khi hoàn thành tất cả requests, hiển thị chart
                         if (completedRequests[0] == totalPayments) {
-                            getActivity().runOnUiThread(() -> displayBestSellingChart(productSales));
+                            safePostToUi(() -> displayBestSellingChart(productSales));
                         }
                     }
                 }
@@ -313,11 +313,18 @@ public class AdminDashboardFragment extends Fragment {
                         
                         // Khi hoàn thành tất cả requests, hiển thị chart
                         if (completedRequests[0] == totalPayments) {
-                            getActivity().runOnUiThread(() -> displayBestSellingChart(productSales));
+                            safePostToUi(() -> displayBestSellingChart(productSales));
                         }
                     }
                 }
             });
+        }
+    }
+
+    private void safePostToUi(Runnable action) {
+        View view = getView();
+        if (view != null) {
+            view.post(action);
         }
     }
 
