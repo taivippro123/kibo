@@ -69,6 +69,10 @@ public class AdminMainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, AdminManagementActivity.class);
             startActivity(intent);
             return true;
+        } else if (id == R.id.nav_admin_orders) {
+            // Use user OrdersFragment for admin view (shared UI)
+            selected = new com.example.kibo.ui.OrdersFragment();
+            setToolbarTitle("Quản lý đơn hàng");
         } else if (id == R.id.nav_admin_messages) {
             // Mở AdminChatListActivity
             Intent intent = new Intent(this, AdminChatListActivity.class);
@@ -128,6 +132,14 @@ public class AdminMainActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    // Public helper for fragments to update the toolbar title in admin flow
+    public void setToolbarTitle(String title) {
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.admin_toolbar);
+        if (toolbar != null) {
+            toolbar.setTitle(title);
+        }
     }
     
     private void navigateToLogin() {
