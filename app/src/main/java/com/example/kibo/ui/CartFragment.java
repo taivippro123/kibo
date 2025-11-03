@@ -22,6 +22,8 @@ import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
 import com.example.kibo.models.CartItem;
 import com.example.kibo.models.CartItemsResponse;
+import com.example.kibo.models.CartRequest;
+import com.example.kibo.models.Cart;
 import com.example.kibo.models.Product;
 import com.example.kibo.models.ProductResponse;
 import com.example.kibo.models.UpdateQuantityRequest;
@@ -67,10 +69,153 @@ public class CartFragment extends Fragment {
         // Setup click listeners
         setupClickListeners();
 
-        // Load cart items
-        loadCartItems();
+        // Ensure we have a valid active cart before loading items
+        ensureActiveCartAndThen(this::loadCartItems);
 
         return view;
+    }
+
+    private interface VoidCallback { void run(); }
+
+    /**
+     * Ensure there is an active cart with status=1 for current user.
+     * If current active cart is completed (status=2) or none exists, create a new one.
+     */
+    private void ensureActiveCartAndThen(VoidCallback next) {
+        if (!sessionManager.isLoggedIn()) { showEmptyState(); return; }
+        int userId = sessionManager.getUserId();
+        Log.d(TAG, "ensureActiveCartAndThen: checking carts for userId=" + userId);
+        apiService.getCarts(userId).enqueue(new Callback<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>>() {
+            @Override
+            public void onResponse(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call, Response<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> response) {
+                if (!isAdded()) return;
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                    java.util.List<com.example.kibo.models.Cart> carts = response.body().getData();
+                    Log.d(TAG, "Fetched " + carts.size() + " carts for user=" + userId);
+                    com.example.kibo.models.Cart activeCart = null;
+                    for (com.example.kibo.models.Cart c : carts) {
+                        Log.d(TAG, "Cart id=" + c.getCartId() + ", status=" + c.getStatus() + " (" + c.getStatusName() + ")");
+                        if (c.getStatus() == 1) { activeCart = c; break; }
+                    }
+
+                    // If we found an active cart (status=1), use it
+                    if (activeCart != null) {
+                        Log.d(TAG, "Using existing active cart (status=1), id=" + activeCart.getCartId());
+                        sessionManager.setActiveCartId(activeCart.getCartId());
+                        next.run();
+                        return;
+                    }
+
+                    // If only completed carts exist (status=2) or none -> create a new cart
+                    Log.d(TAG, "No active cart found. Creating a new cart with status=1.");
+                    createNewActiveCart(userId, next);
+                } else {
+                    // Fallback: try to create a new cart
+                    Log.w(TAG, "getCarts failed (" + (response != null ? response.code() : -1) + "), creating new cart.");
+                    createNewActiveCart(userId, next);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call, Throwable t) {
+                if (!isAdded()) return;
+                // Network error; attempt to proceed with any stored active cart
+                Log.e(TAG, "getCarts error: " + t.getMessage());
+                if (sessionManager.hasActiveCart()) {
+                    Log.w(TAG, "Using stored active cart id=" + sessionManager.getActiveCartId());
+                    next.run();
+                } else {
+                    showEmptyState();
+                }
+            }
+        });
+    }
+
+    private void createNewActiveCart(int userId, VoidCallback next) {
+        // Try creating with status=1 first; some backends may expect 3 → fallback
+        attemptCreateCart(userId, 1, new VoidCallback() {
+            @Override public void run() {
+                // Verify by refetching carts; pick first with status!=2
+                apiService.getCarts(userId).enqueue(new Callback<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>>() {
+                    @Override public void onResponse(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call, Response<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> response) {
+                        if (!isAdded()) return;
+                        if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                            com.example.kibo.models.Cart chosen = null;
+                            for (com.example.kibo.models.Cart c : response.body().getData()) {
+                                if (c.getStatus() != 2) { chosen = c; break; }
+                            }
+                            if (chosen != null) {
+                                Log.d(TAG, "Verified active cart id=" + chosen.getCartId() + ", status=" + chosen.getStatus() + " (" + chosen.getStatusName() + ")");
+                                sessionManager.setActiveCartId(chosen.getCartId());
+                                next.run();
+                            } else {
+                                Log.w(TAG, "No non-completed cart after create status=1 → retry with status=3");
+                                attemptCreateCart(userId, 3, () -> {
+                                    // Fetch again and pick non-completed
+                                    apiService.getCarts(userId).enqueue(new Callback<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>>() {
+                                        @Override public void onResponse(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call2, Response<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> resp2) {
+                                            if (!isAdded()) return;
+                                            if (resp2.isSuccessful() && resp2.body() != null && resp2.body().getData() != null) {
+                                                com.example.kibo.models.Cart chosen2 = null;
+                                                for (com.example.kibo.models.Cart c2 : resp2.body().getData()) {
+                                                    if (c2.getStatus() != 2) { chosen2 = c2; break; }
+                                                }
+                                                if (chosen2 != null) {
+                                                    Log.d(TAG, "Verified active cart (retry) id=" + chosen2.getCartId());
+                                                    sessionManager.setActiveCartId(chosen2.getCartId());
+                                                    next.run();
+                                                } else {
+                                                    Log.e(TAG, "Still no active cart after retry");
+                                                    showEmptyState();
+                                                }
+                                            } else {
+                                                Log.e(TAG, "Refetch carts after retry failed");
+                                                showEmptyState();
+                                            }
+                                        }
+                                        @Override public void onFailure(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call2, Throwable t2) {
+                                            if (!isAdded()) return;
+                                            Log.e(TAG, "Refetch carts error after retry: " + t2.getMessage());
+                                            showEmptyState();
+                                        }
+                                    });
+                                });
+                            }
+                        } else {
+                            Log.e(TAG, "Refetch carts after create failed");
+                            showEmptyState();
+                        }
+                    }
+                    @Override public void onFailure(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call, Throwable t) {
+                        if (!isAdded()) return;
+                        Log.e(TAG, "Refetch carts error: " + t.getMessage());
+                        showEmptyState();
+                    }
+                });
+            }
+        });
+    }
+
+    private void attemptCreateCart(int userId, int status, VoidCallback onSuccess) {
+        CartRequest req = new CartRequest(userId, status);
+        Log.d(TAG, "Attempt creating cart with status=" + status);
+        apiService.createCart(req).enqueue(new Callback<Cart>() {
+            @Override public void onResponse(Call<Cart> call, Response<Cart> response) {
+                if (!isAdded()) return;
+                if (response.isSuccessful() && response.body() != null) {
+                    Log.d(TAG, "CreateCart success (status=" + status + ") id=" + response.body().getCartId());
+                    onSuccess.run();
+                } else {
+                    Log.e(TAG, "CreateCart failed (status=" + status + ") code=" + (response != null ? response.code() : -1));
+                    showEmptyState();
+                }
+            }
+            @Override public void onFailure(Call<Cart> call, Throwable t) {
+                if (!isAdded()) return;
+                Log.e(TAG, "CreateCart error (status=" + status + "): " + t.getMessage());
+                showEmptyState();
+            }
+        });
     }
 
     private void initViews(View view) {
@@ -218,7 +363,7 @@ public class CartFragment extends Fragment {
 
         // Check if user has an active cart
         if (!sessionManager.hasActiveCart()) {
-            showEmptyState();
+            ensureActiveCartAndThen(this::loadCartItems);
             return;
         }
 
@@ -329,7 +474,7 @@ public class CartFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        // Reload cart items when returning to this fragment
-        loadCartItems();
+        // After returning (e.g., post-payment), re-sync carts from server
+        ensureActiveCartAndThen(this::loadCartItems);
     }
 }

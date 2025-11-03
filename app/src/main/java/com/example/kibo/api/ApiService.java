@@ -185,6 +185,10 @@ public interface ApiService {
         @POST("Carts")
         Call<Cart> createCart(@Body CartRequest cartRequest);
 
+        // Get all carts of a user
+        @GET("Carts")
+        Call<PaginationResponse<Cart>> getCarts(@Query("Userid") int userId);
+
         @POST("CartItems/add")
         Call<ApiResponse<String>> addToCart(@Body CartItemRequest cartItemRequest);
 
