@@ -17,6 +17,8 @@ import com.example.kibo.models.OrderDetail;
 import com.example.kibo.models.OrderDetailsResponse;
 import com.example.kibo.models.Product;
 import com.example.kibo.models.ProductResponse;
+import com.example.kibo.models.CartItem;
+import com.example.kibo.models.CartItemsResponse;
 import com.example.kibo.utils.SessionManager;
 
 import com.bumptech.glide.Glide;
@@ -185,33 +187,43 @@ public class OrdersStatusFragment extends Fragment {
                 fragment.navigateToOrderDetail(o);
             });
 
-            // Fetch first order detail
+            // Load cart items to get accurate product data (use cartId from order)
             ApiService api = ApiClient.getApiService();
-            api.getOrderDetails(o.getOrderId()).enqueue(new retrofit2.Callback<OrderDetailsResponse>() {
-                @Override
-                public void onResponse(retrofit2.Call<OrderDetailsResponse> call, retrofit2.Response<OrderDetailsResponse> response) {
-                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
-                        OrderDetail od = response.body().getData().get(0);
-                        holder.tvQuantity.setText("x" + od.getQuantity());
-                        // Fetch product
-                        api.getProductById(od.getProductId()).enqueue(new retrofit2.Callback<ProductResponse>() {
-                            @Override
-                            public void onResponse(retrofit2.Call<ProductResponse> call2, retrofit2.Response<ProductResponse> resp2) {
-                                if (resp2.isSuccessful() && resp2.body() != null && resp2.body().getData() != null && !resp2.body().getData().isEmpty()) {
-                                    Product p = resp2.body().getData().get(0);
-                                    holder.tvName.setText(p.getProductName());
-                                    holder.tvPrice.setText(String.format("%,.0fđ", p.getPrice()));
-                                    Glide.with(holder.img.getContext()).load(p.getImageUrl()).into(holder.img);
+            int cartId = o.getCartId();
+            if (cartId > 0) {
+                api.getCartItems(cartId).enqueue(new retrofit2.Callback<CartItemsResponse>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<CartItemsResponse> call, retrofit2.Response<CartItemsResponse> response) {
+                        if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
+                            java.util.List<CartItem> cartItems = response.body().getData();
+                            // Display first product (index 0) for list view
+                            if (!cartItems.isEmpty()) {
+                                CartItem firstItem = cartItems.get(0);
+                                holder.tvName.setText(firstItem.getProductName());
+                                holder.tvPrice.setText(String.format("%,.0fđ", firstItem.getPrice()));
+                                holder.tvQuantity.setText("x" + firstItem.getQuantity());
+                                
+                                // Load image if missing
+                                if (firstItem.getImageUrl() != null && !firstItem.getImageUrl().isEmpty()) {
+                                    Glide.with(holder.img.getContext()).load(firstItem.getImageUrl()).into(holder.img);
+                                } else {
+                                    // Load image from product API if not in cart item
+                                    loadProductImage(firstItem.getProductId(), holder.img);
                                 }
                             }
-
-                            @Override public void onFailure(retrofit2.Call<ProductResponse> call2, Throwable t) { }
-                        });
+                        }
                     }
-                }
 
-                @Override public void onFailure(retrofit2.Call<OrderDetailsResponse> call, Throwable t) { }
-            });
+                    @Override
+                    public void onFailure(retrofit2.Call<CartItemsResponse> call, Throwable t) {
+                        // Fallback: try to load from order details
+                        loadOrderDetailsFallback(o, holder);
+                    }
+                });
+            } else {
+                // Fallback if no cartId
+                loadOrderDetailsFallback(o, holder);
+            }
 
             // Payment info: fetch by paymentId if present
             Integer paymentId = o.getPaymentId();
@@ -223,6 +235,7 @@ public class OrdersStatusFragment extends Fragment {
                             com.example.kibo.models.Payment p = response.body().get(0);
                             int method = p.getPaymentMethod();
                             int status = p.getPaymentStatus();
+                            double amount = p.getAmount();
 
                             // Filter rules
                             boolean shouldShow = (method == 1 && status == 1) || (method == 2);
@@ -239,6 +252,9 @@ public class OrdersStatusFragment extends Fragment {
                             String statusText = status == 1 ? "Đã thanh toán" : "Chưa thanh toán";
                             holder.tvPaymentMethod.setText("Phương thức thanh toán: " + methodText);
                             holder.tvPaymentStatus.setText("Trạng thái: " + statusText);
+
+                            // Display total order amount from payment
+                            holder.tvPrice.setText(String.format("%,.0fđ", amount));
                         }
                     }
 
@@ -251,6 +267,48 @@ public class OrdersStatusFragment extends Fragment {
         }
 
         @Override public int getItemCount() { return orders.size(); }
+        
+        private void loadProductImage(int productId, ImageView imageView) {
+            ApiService api = ApiClient.getApiService();
+            api.getProductById(productId).enqueue(new retrofit2.Callback<ProductResponse>() {
+                @Override
+                public void onResponse(retrofit2.Call<ProductResponse> call, retrofit2.Response<ProductResponse> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
+                        Product p = response.body().getData().get(0);
+                        Glide.with(imageView.getContext()).load(p.getImageUrl()).into(imageView);
+                    }
+                }
+                @Override
+                public void onFailure(retrofit2.Call<ProductResponse> call, Throwable t) { }
+            });
+        }
+        
+        private void loadOrderDetailsFallback(Order order, OrderVH holder) {
+            ApiService api = ApiClient.getApiService();
+            api.getOrderDetails(order.getOrderId()).enqueue(new retrofit2.Callback<OrderDetailsResponse>() {
+                @Override
+                public void onResponse(retrofit2.Call<OrderDetailsResponse> call, retrofit2.Response<OrderDetailsResponse> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
+                        OrderDetail od = response.body().getData().get(0);
+                        holder.tvQuantity.setText("x" + od.getQuantity());
+                        loadProductImage(od.getProductId(), holder.img);
+                        // Load product for name and price
+                        api.getProductById(od.getProductId()).enqueue(new retrofit2.Callback<ProductResponse>() {
+                            @Override
+                            public void onResponse(retrofit2.Call<ProductResponse> call2, retrofit2.Response<ProductResponse> resp2) {
+                                if (resp2.isSuccessful() && resp2.body() != null && resp2.body().getData() != null && !resp2.body().getData().isEmpty()) {
+                                    Product p = resp2.body().getData().get(0);
+                                    holder.tvName.setText(p.getProductName());
+                                    holder.tvPrice.setText(String.format("%,.0fđ", p.getPrice()));
+                                }
+                            }
+                            @Override public void onFailure(retrofit2.Call<ProductResponse> call2, Throwable t) { }
+                        });
+                    }
+                }
+                @Override public void onFailure(retrofit2.Call<OrderDetailsResponse> call, Throwable t) { }
+            });
+        }
         
         private String getStatusText(int orderStatus) {
             switch (orderStatus) {
