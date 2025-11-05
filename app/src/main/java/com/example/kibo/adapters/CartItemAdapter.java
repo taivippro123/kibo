@@ -14,6 +14,7 @@ import com.example.kibo.R;
 import com.example.kibo.models.CartItem;
 
 import java.util.List;
+import android.util.Log;
 
 public class CartItemAdapter extends RecyclerView.Adapter<CartItemAdapter.CartItemViewHolder> {
     
@@ -64,6 +65,7 @@ public class CartItemAdapter extends RecyclerView.Adapter<CartItemAdapter.CartIt
     }
     
     class CartItemViewHolder extends RecyclerView.ViewHolder {
+        private static final String TAG = "CartItemAdapter";
         private ImageView imageViewProduct;
         private TextView textViewProductName;
         private TextView textViewProductPrice;
@@ -97,20 +99,27 @@ public class CartItemAdapter extends RecyclerView.Adapter<CartItemAdapter.CartIt
         }
         
         public void bind(CartItem cartItem) {
+            int pos = getBindingAdapterPosition();
+            Log.d(TAG, "bind position=" + pos + ", productId=" + cartItem.getProductId() + 
+                    ", name=" + cartItem.getProductName() + 
+                    ", imageUrl=" + cartItem.getImageUrl());
             textViewProductName.setText(cartItem.getProductName());
             textViewProductPrice.setText(cartItem.getFormattedPrice());
             textViewQuantity.setText(String.valueOf(cartItem.getQuantity()));
             
-            // Load product image
+            // Load product image (clear previous to avoid showing recycled image)
+            Glide.with(itemView.getContext()).clear(imageViewProduct);
             if (cartItem.getImageUrl() != null && !cartItem.getImageUrl().isEmpty()) {
                 Glide.with(itemView.getContext())
-                    .load(cartItem.getImageUrl())
-                    .placeholder(R.drawable.kibo_logo)
-                    .error(R.drawable.kibo_logo)
-                    .centerCrop()
-                    .into(imageViewProduct);
+                        .load(cartItem.getImageUrl())
+                        .placeholder(R.drawable.kibo_logo)
+                        .error(R.drawable.kibo_logo)
+                        .centerCrop()
+                        .into(imageViewProduct);
+                Log.d(TAG, "loaded image for productId=" + cartItem.getProductId());
             } else {
                 imageViewProduct.setImageResource(R.drawable.kibo_logo);
+                Log.w(TAG, "missing imageUrl for productId=" + cartItem.getProductId());
             }
             
             // Toggle actions visibility and clickability
