@@ -67,10 +67,11 @@ dependencies {
     // MPAndroidChart for dashboard analytics
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
-    // Google Maps (optional - can be removed if only OSM is used)
+    // Google Maps for Store Location
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
 
-    // OpenStreetMap via osmdroid (no API key required)
+    // OpenStreetMap via osmdroid (OLD - no API key required)
     implementation 'org.osmdroid:osmdroid-android:6.1.18'
     
     // WorkManager for background tasks

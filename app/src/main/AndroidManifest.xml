@@ -26,7 +26,14 @@
             </intent-filter>
         </activity>
         
-        <!-- Shop Map Activity -->
+        <!-- Store Map Activity with Google Maps -->
+        <activity
+            android:name=".StoreMapActivity"
+            android:exported="false"
+            android:label="Vị trí cửa hàng"
+            android:theme="@style/Theme.Kibo" />
+        
+        <!-- Shop Map Activity (OLD - OpenStreetMap) -->
         <activity
             android:name=".ShopMapActivity"
             android:exported="false"
@@ -135,6 +142,10 @@
             android:label="Chat với khách hàng"
             android:theme="@style/Theme.Kibo" />
 
+        <!-- Google Maps API Key - MUST be inside application tag -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDmWSNu6hMOQAR5zovTt7meDWECV1uE6aU" />
 
     </application>
 
