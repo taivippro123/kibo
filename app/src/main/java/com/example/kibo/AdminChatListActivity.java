@@ -92,13 +92,19 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                 if (id == R.id.nav_admin_dashboard) {
                     Intent intent = new Intent(AdminChatListActivity.this, AdminMainActivity.class);
                     intent.putExtra("fragment", "dashboard");
+                    intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                     startActivity(intent);
-                    finish();
                     return true;
                 } else if (id == R.id.nav_admin_products) {
                     Intent intent = new Intent(AdminChatListActivity.this, AdminManagementActivity.class);
                     startActivity(intent);
-                    finish();
+                    return true;
+                } else if (id == R.id.nav_admin_orders) {
+                    // Chuyển sang AdminMainActivity và load OrdersFragment
+                    Intent intent = new Intent(AdminChatListActivity.this, AdminMainActivity.class);
+                    intent.putExtra("fragment", "orders");
+                    intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(intent);
                     return true;
                 } else if (id == R.id.nav_admin_messages) {
                     // already here
@@ -106,8 +112,8 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                 } else if (id == R.id.nav_admin_account) {
                     Intent intent = new Intent(AdminChatListActivity.this, AdminMainActivity.class);
                     intent.putExtra("fragment", "account");
+                    intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                     startActivity(intent);
-                    finish();
                     return true;
                 }
                 return false;
