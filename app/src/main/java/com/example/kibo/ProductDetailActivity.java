@@ -443,7 +443,7 @@ public class ProductDetailActivity extends AppCompatActivity {
 
     private void ensureActiveCartAndAddProduct(int userId) {
         // Check for existing active cart first
-        apiService.getCarts(userId).enqueue(new Callback<com.example.kibo.models.PaginationResponse<Cart>>() {
+        apiService.getCarts(userId, 100).enqueue(new Callback<com.example.kibo.models.PaginationResponse<Cart>>() {
             @Override
             public void onResponse(Call<com.example.kibo.models.PaginationResponse<Cart>> call,
                     Response<com.example.kibo.models.PaginationResponse<Cart>> response) {

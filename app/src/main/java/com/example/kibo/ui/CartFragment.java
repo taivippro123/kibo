@@ -89,7 +89,7 @@ public class CartFragment extends Fragment {
         int userId = sessionManager.getUserId();
         Log.d(TAG, "checkActiveCartAndLoad: checking carts for userId=" + userId);
         
-        apiService.getCarts(userId).enqueue(new Callback<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>>() {
+        apiService.getCarts(userId, 100).enqueue(new Callback<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>>() {
             @Override
             public void onResponse(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call, 
                     Response<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> response) {

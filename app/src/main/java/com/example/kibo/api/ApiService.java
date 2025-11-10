@@ -187,7 +187,7 @@ public interface ApiService {
 
         // Get all carts of a user
         @GET("Carts")
-        Call<PaginationResponse<Cart>> getCarts(@Query("Userid") int userId);
+        Call<PaginationResponse<Cart>> getCarts(@Query("Userid") int userId, @Query("PageSize") int pageSize);
 
         @POST("CartItems/add")
         Call<ApiResponse<String>> addToCart(@Body CartItemRequest cartItemRequest);
