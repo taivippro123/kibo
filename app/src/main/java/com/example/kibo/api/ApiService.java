@@ -96,9 +96,17 @@ public interface ApiService {
         @GET("Products")
         Call<ProductResponse> getAllProducts();
 
-        // Get product by ID
-        @GET("Products")
-        Call<ProductResponse> getProductById(@Query("Productid") int productId);
+    // Get product by ID
+    @GET("Products")
+    Call<ProductResponse> getProductById(@Query("Productid") int productId);
+    
+    @GET("Products")
+    Call<ProductResponse> getProductsFiltered(
+            @Query("CategoryId") Integer categoryId,
+            @Query("MinPrice") Double minPrice,
+            @Query("MaxPrice") Double maxPrice
+    );
+
 
         // Get product detail by ID (direct endpoint)
         @GET("Products/{id}")
@@ -184,6 +192,10 @@ public interface ApiService {
         // Cart endpoints
         @POST("Carts")
         Call<Cart> createCart(@Body CartRequest cartRequest);
+
+        // Get all carts of a user
+        @GET("Carts")
+        Call<PaginationResponse<Cart>> getCarts(@Query("Userid") int userId, @Query("PageSize") int pageSize);
 
         @POST("CartItems/add")
         Call<ApiResponse<String>> addToCart(@Body CartItemRequest cartItemRequest);

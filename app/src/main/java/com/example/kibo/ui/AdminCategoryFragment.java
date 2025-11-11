@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.kibo.R;
 import com.example.kibo.adapters.AdminCategoryAdapter;
 import com.example.kibo.api.ApiClient;
@@ -37,6 +38,11 @@ public class AdminCategoryFragment extends Fragment {
     private ImageButton btnAdd;
     private AdminCategoryAdapter adapter;
     private List<Category> categoryList;
+    private SwipeRefreshLayout swipeRefreshLayout;
+    
+    // Counter để theo dõi số lượng product count requests đã hoàn thành
+    private int completedProductCountRequests = 0;
+    private int totalProductCountRequests = 0;
     
     @Nullable
     @Override
@@ -54,6 +60,7 @@ public class AdminCategoryFragment extends Fragment {
         rvCategories = view.findViewById(R.id.rv_admin_categories);
         etSearch = view.findViewById(R.id.et_search_categories);
         btnAdd = view.findViewById(R.id.btn_add_category);
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshCategories);
         
         rvCategories.setLayoutManager(new LinearLayoutManager(getContext()));
     }
@@ -88,6 +95,12 @@ public class AdminCategoryFragment extends Fragment {
             
             @Override
             public void afterTextChanged(Editable s) {}
+        });
+        
+        // Setup pull-to-refresh
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            // Reload categories
+            loadCategories();
         });
     }
     
@@ -180,17 +193,28 @@ public class AdminCategoryFragment extends Fragment {
                     categoryList.addAll(response.body().getData());
                     adapter.updateList(new ArrayList<>(categoryList));
                     
+                    // Reset counter cho product counts
+                    completedProductCountRequests = 0;
+                    totalProductCountRequests = categoryList.size();
+                    
                     // Load product count cho mỗi category
-                    loadProductCounts();
+                    if (totalProductCountRequests > 0) {
+                        loadProductCounts();
+                    } else {
+                        // Nếu không có category nào, dừng refresh ngay
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
                     
                     Toast.makeText(getContext(), "Đã tải " + categoryList.size() + " danh mục", Toast.LENGTH_SHORT).show();
                 } else {
+                    swipeRefreshLayout.setRefreshing(false);
                     Toast.makeText(getContext(), "Tải danh mục thất bại", Toast.LENGTH_SHORT).show();
                 }
             }
             
             @Override
             public void onFailure(Call<CategoryResponse> call, Throwable t) {
+                swipeRefreshLayout.setRefreshing(false);
                 Toast.makeText(getContext(), "Lỗi mạng khi tải danh mục", Toast.LENGTH_SHORT).show();
             }
         });
@@ -214,14 +238,31 @@ public class AdminCategoryFragment extends Fragment {
                         // Nếu không có sản phẩm hoặc lỗi, set count = 0
                         adapter.updateProductCount(category.getCategoryId(), 0);
                     }
+                    
+                    // Kiểm tra xem đã load xong tất cả product counts chưa
+                    checkAllProductCountsLoaded();
                 }
                 
                 @Override
                 public void onFailure(Call<ProductResponse> call, Throwable t) {
                     // Nếu lỗi mạng, set count = 0
                     adapter.updateProductCount(category.getCategoryId(), 0);
+                    
+                    // Kiểm tra xem đã load xong tất cả product counts chưa
+                    checkAllProductCountsLoaded();
                 }
             });
+        }
+    }
+    
+    // Method để kiểm tra xem đã load xong tất cả product counts chưa
+    private void checkAllProductCountsLoaded() {
+        completedProductCountRequests++;
+        if (completedProductCountRequests >= totalProductCountRequests) {
+            // Dừng refresh animation khi đã load xong tất cả product counts
+            swipeRefreshLayout.setRefreshing(false);
+            completedProductCountRequests = 0; // Reset cho lần refresh tiếp theo
+            totalProductCountRequests = 0;
         }
     }
     

@@ -40,6 +40,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.app.Dialog;
+import com.example.kibo.models.ProductImage;
 
 public class ConfirmOrderActivity extends AppCompatActivity {
     
@@ -250,6 +251,9 @@ public class ConfirmOrderActivity extends AppCompatActivity {
     
     private void setupRecyclerView() {
         recyclerViewOrderItems.setLayoutManager(new LinearLayoutManager(this));
+        // Ensure the entire page scrolls and RecyclerView measures full height inside NestedScrollView
+        recyclerViewOrderItems.setNestedScrollingEnabled(false);
+        recyclerViewOrderItems.setHasFixedSize(false);
         cartItemAdapter = new CartItemAdapter(items);
         // Disable actions on confirm screen
         cartItemAdapter.setActionsEnabled(false);
@@ -265,11 +269,20 @@ public class ConfirmOrderActivity extends AppCompatActivity {
                     java.util.List<CartItem> data = response.body().getData();
                     items.clear();
                     items.addAll(data);
-                    // load product details to get image and current price/name
-                    loadProductDetails(items);
+                    
+                    // API already returns productName and price, use them directly
+                    // Only load product details for imageUrl and dimensions (for shipping fee)
+                    loadMissingProductImages();
+                    
+                    // Load first product details for shipping fee calculation (dimensions/weight)
                     if (items.size() > 0) {
                         firstProductQuantity = items.get(0).getQuantity();
+                        loadFirstProductForShipping(items.get(0).getProductId());
                     }
+                    
+                    // Update adapter and compute totals
+                    cartItemAdapter.updateCartItems(items);
+                    computeTotals();
                 }
             }
 
@@ -300,38 +313,63 @@ public class ConfirmOrderActivity extends AppCompatActivity {
         }
     }
 
-    private void loadProductDetails(java.util.List<CartItem> list) {
-        final int[] loadedCount = {0};
-        for (CartItem ci : list) {
-            Call<com.example.kibo.models.ProductResponse> call = apiService.getProductById(ci.getProductId());
-            call.enqueue(new Callback<com.example.kibo.models.ProductResponse>() {
-                @Override
-                public void onResponse(Call<com.example.kibo.models.ProductResponse> call, Response<com.example.kibo.models.ProductResponse> response) {
-                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
-                        com.example.kibo.models.Product p = response.body().getData().get(0);
-                        ci.setProductName(p.getProductName());
-                        ci.setPrice(p.getPrice());
-                        ci.setImageUrl(p.getImageUrl());
-                        cartItemAdapter.updateCartItems(items);
-                        computeTotals();
-                        
-                        // Calculate shipping fee once we have the first product details
-                        loadedCount[0]++;
-                        if (loadedCount[0] == 1) {
-                            firstProduct = p; // Store first product for order creation
-                            calculateShippingFee(p);
-                        }
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<com.example.kibo.models.ProductResponse> call, Throwable t) {
-                }
-            });
+    /**
+     * Load product images for cart items that don't have imageUrl yet.
+     * This is optional - if API already returns imageUrl, this won't be called.
+     */
+    private void loadMissingProductImages() {
+        for (CartItem cartItem : items) {
+            // Only load image if it's missing
+            if (cartItem.getImageUrl() == null || cartItem.getImageUrl().isEmpty()) {
+                loadProductImage(cartItem);
+            }
         }
-        // initial paint
-        cartItemAdapter.updateCartItems(items);
-        computeTotals();
+    }
+
+    private void loadProductImage(CartItem cartItem) {
+        apiService.getProductImages(cartItem.getProductId()).enqueue(new Callback<java.util.List<ProductImage>>() {
+            @Override
+            public void onResponse(Call<java.util.List<ProductImage>> call, Response<java.util.List<ProductImage>> response) {
+                if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                    java.util.List<ProductImage> images = response.body();
+                    String chosenUrl = null;
+                    for (ProductImage img : images) {
+                        if (img.isPrimary()) { chosenUrl = img.getImageUrl(); break; }
+                    }
+                    if (chosenUrl == null) chosenUrl = images.get(0).getImageUrl();
+                    cartItem.setImageUrl(chosenUrl);
+                    cartItemAdapter.updateCartItems(items);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<java.util.List<ProductImage>> call, Throwable t) {
+            }
+        });
+    }
+
+    /**
+     * Load first product details for shipping fee calculation (dimensions/weight).
+     * This doesn't overwrite cart item name/price.
+     */
+    private void loadFirstProductForShipping(int productId) {
+        Call<com.example.kibo.models.ProductResponse> call = apiService.getProductById(productId);
+        call.enqueue(new Callback<com.example.kibo.models.ProductResponse>() {
+            @Override
+            public void onResponse(Call<com.example.kibo.models.ProductResponse> call, Response<com.example.kibo.models.ProductResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
+                    com.example.kibo.models.Product p = response.body().getData().get(0);
+                    
+                    // Store first product for shipping fee calculation and order creation
+                    firstProduct = p;
+                    calculateShippingFee(p);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.example.kibo.models.ProductResponse> call, Throwable t) {
+            }
+        });
     }
     
     private void calculateShippingFee(com.example.kibo.models.Product firstProduct) {

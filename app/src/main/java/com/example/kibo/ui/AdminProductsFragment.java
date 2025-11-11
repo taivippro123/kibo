@@ -16,6 +16,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.kibo.R;
 import com.example.kibo.AdminProductFormActivity;
 import com.example.kibo.api.ApiClient;
@@ -36,6 +37,8 @@ public class AdminProductsFragment extends Fragment {
     private AdminProductAdapter adapter;
     private List<Product> productList;
     private List<Category> categoryList;
+    private SwipeRefreshLayout swipeRefreshLayout;
+    private boolean isFragmentInitialized = false;
 
     @Nullable
     @Override
@@ -53,6 +56,7 @@ public class AdminProductsFragment extends Fragment {
         rvProducts = view.findViewById(R.id.rv_admin_products);
         etSearch = view.findViewById(R.id.et_search_products);
         btnAdd = view.findViewById(R.id.btn_add_product);
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshProducts);
 
         rvProducts.setLayoutManager(new LinearLayoutManager(getContext()));
     }
@@ -67,6 +71,7 @@ public class AdminProductsFragment extends Fragment {
 
         // Load categories trước, sau đó load products
         loadCategories();
+        isFragmentInitialized = true;
     }
 
     private void setupListeners() {
@@ -83,6 +88,12 @@ public class AdminProductsFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {}
+        });
+
+        // Setup pull-to-refresh
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            // Reload categories và products
+            loadCategories();
         });
     }
 
@@ -103,7 +114,10 @@ public class AdminProductsFragment extends Fragment {
     }
     
     private void showDeleteConfirmDialog(Product product) {
-        new android.app.AlertDialog.Builder(requireContext())
+        if (getContext() == null || !isAdded()) {
+            return;
+        }
+        new android.app.AlertDialog.Builder(getContext())
                 .setTitle("Xóa sản phẩm")
                 .setMessage("Bạn có chắc muốn xóa sản phẩm '" + product.getProductName() + "'?\n\nHành động này không thể hoàn tác!")
                 .setNegativeButton("Hủy", null)
@@ -195,46 +209,116 @@ public class AdminProductsFragment extends Fragment {
 
     // Load products từ API và bind to adapter
     private void loadProductsFromApi() {
+        productList.clear(); // Clear list trước khi load
+        loadAllProductsRecursive(1, 100); // Bắt đầu từ page 1, pageSize = 100
+    }
+    
+    // Load tất cả products bằng cách gọi nhiều pages cho đến khi hết
+    private void loadAllProductsRecursive(int pageNumber, int pageSize) {
         ApiService apiService = ApiClient.getApiService();
-        apiService.getAllProducts().enqueue(new retrofit2.Callback<ProductResponse>() {
+        apiService.getProducts(pageNumber, pageSize).enqueue(new retrofit2.Callback<ProductResponse>() {
             @Override
             public void onResponse(retrofit2.Call<ProductResponse> call, retrofit2.Response<ProductResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    List<Product> data = response.body().getData();
-                    if (data != null) {
-                        productList.clear();
+                    ProductResponse productResponse = response.body();
+                    List<Product> data = productResponse.getData();
+                    
+                    if (data != null && !data.isEmpty()) {
+                        // Thêm products từ page hiện tại vào list
                         productList.addAll(data);
                         
-                        // Kiểm tra nếu có query trong search box thì filter
-                        String currentQuery = etSearch.getText().toString().trim();
-                        if (!currentQuery.isEmpty()) {
-                            filterProducts(currentQuery);
+                        // Kiểm tra xem còn page tiếp theo không
+                        if (productResponse.isHasNextPage() && productResponse.getCurrentPage() < productResponse.getTotalPages()) {
+                            // Nếu còn page tiếp theo, tiếp tục load
+                            loadAllProductsRecursive(pageNumber + 1, pageSize);
                         } else {
-                            adapter.filterList(new ArrayList<>(productList));
+                            // Đã load hết tất cả pages, cập nhật UI
+                            onAllProductsLoaded();
                         }
-
-                        Toast.makeText(getContext(), "Đã tải " + productList.size() + " sản phẩm", Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(getContext(), "Không có dữ liệu sản phẩm", Toast.LENGTH_SHORT).show();
+                        // Không có data, cập nhật UI
+                        onAllProductsLoaded();
                     }
                 } else {
-                    Toast.makeText(getContext(), "Tải sản phẩm thất bại", Toast.LENGTH_SHORT).show();
+                    // Nếu page đầu tiên fail thì báo lỗi, nếu page sau fail thì dừng và hiển thị data đã load
+                    if (pageNumber == 1) {
+                        if (getView() != null && swipeRefreshLayout != null) {
+                            swipeRefreshLayout.setRefreshing(false);
+                        }
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), "Tải sản phẩm thất bại", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        // Đã load được một số pages, hiển thị data đã có
+                        onAllProductsLoaded();
+                    }
                 }
             }
 
             @Override
             public void onFailure(retrofit2.Call<ProductResponse> call, Throwable t) {
-                Toast.makeText(getContext(), "Lỗi mạng khi tải sản phẩm", Toast.LENGTH_SHORT).show();
-                t.printStackTrace(); // Log lỗi để debug
+                // Nếu page đầu tiên fail thì báo lỗi, nếu page sau fail thì dừng và hiển thị data đã load
+                if (pageNumber == 1) {
+                    if (getView() != null && swipeRefreshLayout != null) {
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Lỗi mạng khi tải sản phẩm", Toast.LENGTH_SHORT).show();
+                        t.printStackTrace();
+                    }
+                } else {
+                    // Đã load được một số pages, hiển thị data đã có
+                    onAllProductsLoaded();
+                }
             }
         });
+    }
+    
+    // Method được gọi khi đã load xong tất cả products (hoặc dừng giữa chừng)
+    private void onAllProductsLoaded() {
+        // Dừng refresh animation nếu view đã được tạo
+        if (getView() != null && swipeRefreshLayout != null) {
+            swipeRefreshLayout.setRefreshing(false);
+        }
+        
+        // Kiểm tra nếu có query trong search box thì filter
+        if (etSearch != null) {
+            String currentQuery = etSearch.getText().toString().trim();
+            if (!currentQuery.isEmpty()) {
+                filterProducts(currentQuery);
+            } else {
+                if (adapter != null && productList != null) {
+                    adapter.filterList(new ArrayList<>(productList));
+                }
+            }
+        } else {
+            if (adapter != null && productList != null) {
+                adapter.filterList(new ArrayList<>(productList));
+            }
+        }
+
+        if (getContext() != null && productList != null) {
+            Toast.makeText(getContext(), "Đã tải " + productList.size() + " sản phẩm", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        // Refresh danh sách sản phẩm khi quay lại từ form
-        loadProductsFromApi();
+        // Không tự động reload trong onResume để tránh crash
+        // Chỉ reload khi thực sự cần thiết (ví dụ: sau khi quay lại từ form)
+    }
+    
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Đánh dấu fragment đã pause để tránh các operations không cần thiết
+    }
+    
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Cleanup khi view bị destroy
     }
 
     // Method để refresh toàn bộ data (có thể gọi từ bên ngoài)
@@ -266,25 +350,56 @@ public class AdminProductsFragment extends Fragment {
     
     // Load products với filter sau khi load xong
     private void loadProductsFromApiWithFilter(String filterQuery) {
+        productList.clear(); // Clear list trước khi load
+        loadAllProductsRecursiveWithFilter(1, 100, filterQuery);
+    }
+    
+    // Load tất cả products với filter bằng cách gọi nhiều pages
+    private void loadAllProductsRecursiveWithFilter(int pageNumber, int pageSize, final String filterQuery) {
         ApiService apiService = ApiClient.getApiService();
-        apiService.getAllProducts().enqueue(new retrofit2.Callback<ProductResponse>() {
+        apiService.getProducts(pageNumber, pageSize).enqueue(new retrofit2.Callback<ProductResponse>() {
             @Override
             public void onResponse(retrofit2.Call<ProductResponse> call, retrofit2.Response<ProductResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    List<Product> data = response.body().getData();
-                    if (data != null) {
-                        productList.clear();
+                    ProductResponse productResponse = response.body();
+                    List<Product> data = productResponse.getData();
+                    
+                    if (data != null && !data.isEmpty()) {
+                        // Thêm products từ page hiện tại vào list
                         productList.addAll(data);
                         
-                        // Filter ngay sau khi load xong
+                        // Kiểm tra xem còn page tiếp theo không
+                        if (productResponse.isHasNextPage() && productResponse.getCurrentPage() < productResponse.getTotalPages()) {
+                            // Nếu còn page tiếp theo, tiếp tục load
+                            loadAllProductsRecursiveWithFilter(pageNumber + 1, pageSize, filterQuery);
+                        } else {
+                            // Đã load hết tất cả pages, filter và cập nhật UI
+                            filterProducts(filterQuery);
+                        }
+                    } else {
+                        // Không có data, filter và cập nhật UI
                         filterProducts(filterQuery);
+                    }
+                } else {
+                    // Nếu có data đã load, vẫn filter
+                    if (productList != null && !productList.isEmpty()) {
+                        filterProducts(filterQuery);
+                    }
+                    if (getView() != null && swipeRefreshLayout != null) {
+                        swipeRefreshLayout.setRefreshing(false);
                     }
                 }
             }
 
             @Override
             public void onFailure(retrofit2.Call<ProductResponse> call, Throwable t) {
-                // Không cần làm gì nếu load thất bại
+                // Nếu có data đã load, vẫn filter
+                if (productList != null && !productList.isEmpty()) {
+                    filterProducts(filterQuery);
+                }
+                if (getView() != null && swipeRefreshLayout != null) {
+                    swipeRefreshLayout.setRefreshing(false);
+                }
             }
         });
     }
