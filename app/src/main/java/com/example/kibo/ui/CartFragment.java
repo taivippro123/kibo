@@ -22,8 +22,10 @@ import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
 import com.example.kibo.models.CartItem;
 import com.example.kibo.models.CartItemsResponse;
+import com.example.kibo.models.Cart;
 import com.example.kibo.models.Product;
 import com.example.kibo.models.ProductResponse;
+import com.example.kibo.models.ProductImage;
 import com.example.kibo.models.UpdateQuantityRequest;
 import com.example.kibo.utils.SessionManager;
 
@@ -35,9 +37,9 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class CartFragment extends Fragment {
-    
+
     private static final String TAG = "CartFragment";
-    
+
     private SessionManager sessionManager;
     private ApiService apiService;
     private RecyclerView recyclerViewCartItems;
@@ -45,34 +47,105 @@ public class CartFragment extends Fragment {
     private TextView textViewEmptyCart;
     private TextView textViewItemCount;
     private Button buttonContinue;
-    
+
     private CartItemAdapter cartItemAdapter;
     private List<CartItem> cartItems = new ArrayList<>();
-    
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+            Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_cart, container, false);
-        
+
         // Initialize services
         sessionManager = new SessionManager(requireContext());
         apiService = ApiClient.getApiService();
-        
+
         // Initialize views
         initViews(view);
-        
+
         // Setup recycler view
         setupRecyclerView();
-        
+
         // Setup click listeners
         setupClickListeners();
-        
-        // Load cart items
-        loadCartItems();
-        
+
+        // Check for active cart and load items (no automatic cart creation)
+        checkActiveCartAndLoad();
+
         return view;
     }
-    
+
+    /**
+     * Check if there is an active cart (status=1) for current user.
+     * If found, use it. Otherwise, show empty state.
+     * Cart will only be created when user adds product to cart from ProductDetailActivity.
+     */
+    private void checkActiveCartAndLoad() {
+        if (!sessionManager.isLoggedIn()) {
+            showEmptyState();
+            return;
+        }
+        
+        int userId = sessionManager.getUserId();
+        Log.d(TAG, "checkActiveCartAndLoad: checking carts for userId=" + userId);
+        
+        apiService.getCarts(userId, 100).enqueue(new Callback<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>>() {
+            @Override
+            public void onResponse(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call, 
+                    Response<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> response) {
+                if (!isAdded()) return;
+                
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                    java.util.List<com.example.kibo.models.Cart> carts = response.body().getData();
+                    Log.d(TAG, "Fetched " + carts.size() + " carts for user=" + userId);
+                    
+                    com.example.kibo.models.Cart activeCart = null;
+                    for (com.example.kibo.models.Cart c : carts) {
+                        Log.d(TAG, "Cart id=" + c.getCartId() + ", status=" + c.getStatus() + " (" + c.getStatusName() + ")");
+                        if (c.getStatus() == 1) { 
+                            activeCart = c; 
+                            break; 
+                        }
+                    }
+
+                    // If we found an active cart (status=1), use it
+                    if (activeCart != null) {
+                        Log.d(TAG, "Using existing active cart (status=1), id=" + activeCart.getCartId());
+                        sessionManager.setActiveCartId(activeCart.getCartId());
+                        loadCartItems();
+                    } else {
+                        // No active cart found - show empty state
+                        // Cart will be created when user adds product to cart
+                        Log.d(TAG, "No active cart found. Showing empty state.");
+                        showEmptyState();
+                    }
+                } else {
+                    // API call failed - check if we have stored active cart
+                    Log.w(TAG, "getCarts failed (" + (response != null ? response.code() : -1) + ")");
+                    if (sessionManager.hasActiveCart()) {
+                        Log.w(TAG, "Using stored active cart id=" + sessionManager.getActiveCartId());
+                        loadCartItems();
+                    } else {
+                        showEmptyState();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.example.kibo.models.PaginationResponse<com.example.kibo.models.Cart>> call, Throwable t) {
+                if (!isAdded()) return;
+                // Network error; attempt to proceed with any stored active cart
+                Log.e(TAG, "getCarts error: " + t.getMessage());
+                if (sessionManager.hasActiveCart()) {
+                    Log.w(TAG, "Using stored active cart id=" + sessionManager.getActiveCartId());
+                    loadCartItems();
+                } else {
+                    showEmptyState();
+                }
+            }
+        });
+    }
+
     private void initViews(View view) {
         recyclerViewCartItems = view.findViewById(R.id.recycler_view_cart_items);
         layoutEmptyCart = view.findViewById(R.id.layout_empty_cart);
@@ -80,7 +153,7 @@ public class CartFragment extends Fragment {
         textViewItemCount = view.findViewById(R.id.text_view_item_count);
         buttonContinue = view.findViewById(R.id.button_continue);
     }
-    
+
     private void setupRecyclerView() {
         cartItemAdapter = new CartItemAdapter(cartItems);
         cartItemAdapter.setOnQuantityClickListener(new CartItemAdapter.OnQuantityClickListener() {
@@ -97,7 +170,7 @@ public class CartFragment extends Fragment {
         recyclerViewCartItems.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerViewCartItems.setAdapter(cartItemAdapter);
     }
-    
+
     private void setupClickListeners() {
         // Continue button click listener
         buttonContinue.setOnClickListener(new View.OnClickListener() {
@@ -112,7 +185,7 @@ public class CartFragment extends Fragment {
             }
         });
     }
-    
+
     private void showEditQuantityDialog(CartItem item) {
         View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_quantity, null);
         TextView textProductName = dialogView.findViewById(R.id.text_product_name);
@@ -131,7 +204,8 @@ public class CartFragment extends Fragment {
 
         btnDecrease.setOnClickListener(v -> {
             int q = Integer.parseInt(textQuantity.getText().toString());
-            if (q > 1) textQuantity.setText(String.valueOf(q - 1));
+            if (q > 1)
+                textQuantity.setText(String.valueOf(q - 1));
         });
         btnIncrease.setOnClickListener(v -> {
             int q = Integer.parseInt(textQuantity.getText().toString());
@@ -148,55 +222,64 @@ public class CartFragment extends Fragment {
     }
 
     private void updateQuantity(int productId, int quantity) {
-        if (!sessionManager.hasActiveCart()) return;
+        if (!sessionManager.hasActiveCart())
+            return;
         int cartId = sessionManager.getActiveCartId();
         UpdateQuantityRequest request = new UpdateQuantityRequest(cartId, productId, quantity);
-        apiService.updateCartItemQuantity(request).enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
-            @Override
-            public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
-                if (response.isSuccessful()) {
-                    // reload cart items
-                    loadCartItems();
-                } else {
-                    Log.e(TAG, "Update quantity failed: " + response.code());
-                }
-            }
+        apiService.updateCartItemQuantity(request)
+                .enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call,
+                            retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
+                        if (response.isSuccessful()) {
+                            // reload cart items
+                            loadCartItems();
+                        } else {
+                            Log.e(TAG, "Update quantity failed: " + response.code());
+                        }
+                    }
 
-            @Override
-            public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
-                Log.e(TAG, "Update quantity error: " + t.getMessage());
-            }
-        });
+                    @Override
+                    public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call,
+                            Throwable t) {
+                        Log.e(TAG, "Update quantity error: " + t.getMessage());
+                    }
+                });
     }
 
     private void confirmRemove(CartItem item) {
         new android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Xóa sản phẩm")
-            .setMessage("Bạn có chắc muốn xóa '" + item.getProductName() + "' khỏi giỏ hàng?")
-            .setNegativeButton("Hủy", null)
-            .setPositiveButton("Xóa", (d, w) -> removeItem(item))
-            .show();
+                .setTitle("Xóa sản phẩm")
+                .setMessage("Bạn có chắc muốn xóa '" + item.getProductName() + "' khỏi giỏ hàng?")
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xóa", (d, w) -> removeItem(item))
+                .show();
     }
 
     private void removeItem(CartItem item) {
-        if (!sessionManager.hasActiveCart()) return;
+        if (!sessionManager.hasActiveCart())
+            return;
         int cartId = sessionManager.getActiveCartId();
-        com.example.kibo.models.RemoveCartItemRequest request = new com.example.kibo.models.RemoveCartItemRequest(cartId, item.getProductId());
-        apiService.removeCartItem(request).enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
-            @Override
-            public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
-                if (response.isSuccessful()) {
-                    loadCartItems();
-                } else {
-                    Log.e(TAG, "Remove item failed: " + response.code());
-                }
-            }
+        com.example.kibo.models.RemoveCartItemRequest request = new com.example.kibo.models.RemoveCartItemRequest(
+                cartId, item.getProductId());
+        apiService.removeCartItem(request)
+                .enqueue(new retrofit2.Callback<com.example.kibo.models.ApiResponse<String>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call,
+                            retrofit2.Response<com.example.kibo.models.ApiResponse<String>> response) {
+                        if (response.isSuccessful()) {
+                            loadCartItems();
+                        } else {
+                            Log.e(TAG, "Remove item failed: " + response.code());
+                        }
+                    }
 
-            @Override
-            public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
-                Log.e(TAG, "Remove item error: " + t.getMessage());
-            }
-        });
+                    @Override
+                    public void onFailure(retrofit2.Call<com.example.kibo.models.ApiResponse<String>> call,
+                            Throwable t) {
+                        Log.e(TAG, "Remove item error: " + t.getMessage());
+                    }
+                });
     }
 
     private void loadCartItems() {
@@ -205,90 +288,103 @@ public class CartFragment extends Fragment {
             showEmptyState();
             return;
         }
-        
+
         // Check if user has an active cart
         if (!sessionManager.hasActiveCart()) {
+            // No active cart - show empty state
+            // Cart will be created when user adds product to cart
             showEmptyState();
             return;
         }
-        
+
         int cartId = sessionManager.getActiveCartId();
         Log.d(TAG, "Loading cart items for cart ID: " + cartId);
-        
+
         Call<CartItemsResponse> call = apiService.getCartItems(cartId);
         call.enqueue(new Callback<CartItemsResponse>() {
             @Override
             public void onResponse(Call<CartItemsResponse> call, Response<CartItemsResponse> response) {
+                if (!isAdded()) return;
+                
                 if (response.isSuccessful() && response.body() != null) {
                     CartItemsResponse cartItemsResponse = response.body();
                     List<CartItem> items = cartItemsResponse.getData();
-                    
-                    if (items.isEmpty()) {
+
+                    if (items == null || items.isEmpty()) {
+                        Log.d(TAG, "Cart is empty");
                         showEmptyState();
                     } else {
-                        // Load detailed product info for each cart item
-                        loadProductDetails(items);
+                        // API already returns productName and price, use them directly
+                        cartItems.clear();
+                        cartItems.addAll(items);
+                        
+                        // Load imageUrl for items that don't have it (if needed)
+                        loadMissingProductImages();
+                        
+                        // Update adapter and show cart items
+                        cartItemAdapter.updateCartItems(cartItems);
+                        showCartItems();
+                        
+                        Log.d(TAG, "Loaded " + items.size() + " cart items");
                     }
-                    
-                    Log.d(TAG, "Loaded " + items.size() + " cart items");
                 } else {
-                    Log.e(TAG, "Failed to load cart items: " + response.code());
+                    Log.e(TAG, "Failed to load cart items: " + (response != null ? response.code() : -1));
                     showEmptyState();
                 }
             }
-            
+
             @Override
             public void onFailure(Call<CartItemsResponse> call, Throwable t) {
+                if (!isAdded()) return;
                 Log.e(TAG, "Error loading cart items: " + t.getMessage());
                 showEmptyState();
             }
         });
     }
-    
-    private void loadProductDetails(List<CartItem> items) {
-        cartItems.clear();
-        cartItems.addAll(items);
-        
-        // Load product details for each item
+
+    /**
+     * Load product images for cart items that don't have imageUrl yet.
+     * This is optional - if API already returns imageUrl, this won't be called.
+     */
+    private void loadMissingProductImages() {
         for (CartItem cartItem : cartItems) {
-            loadProductDetail(cartItem);
+            // Only load image if it's missing
+            if (cartItem.getImageUrl() == null || cartItem.getImageUrl().isEmpty()) {
+                loadProductImage(cartItem);
+            }
         }
-        
-        showCartItems();
     }
-    
-    private void loadProductDetail(CartItem cartItem) {
-        Call<ProductResponse> call = apiService.getProductById(cartItem.getProductId());
-        call.enqueue(new Callback<ProductResponse>() {
+
+    private void loadProductImage(CartItem cartItem) {
+        apiService.getProductImages(cartItem.getProductId()).enqueue(new Callback<java.util.List<ProductImage>>() {
             @Override
-            public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    ProductResponse productResponse = response.body();
-                    if (productResponse.getData() != null && !productResponse.getData().isEmpty()) {
-                        Product product = productResponse.getData().get(0);
-                        
-                        // Update cart item with product details
-                        cartItem.setProductName(product.getProductName());
-                        cartItem.setPrice(product.getPrice());
-                        cartItem.setImageUrl(product.getImageUrl());
-                        
-                        // Update adapter
-                        cartItemAdapter.updateCartItems(cartItems);
-                        
-                        Log.d(TAG, "Loaded product details for: " + product.getProductName());
+            public void onResponse(Call<java.util.List<ProductImage>> call, Response<java.util.List<ProductImage>> response) {
+                if (!isAdded()) return;
+                if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                    java.util.List<ProductImage> images = response.body();
+                    String chosenUrl = null;
+                    for (ProductImage img : images) {
+                        if (img.isPrimary()) { chosenUrl = img.getImageUrl(); break; }
                     }
+                    if (chosenUrl == null) {
+                        chosenUrl = images.get(0).getImageUrl();
+                    }
+                    cartItem.setImageUrl(chosenUrl);
+                    cartItemAdapter.updateCartItems(cartItems);
+                    Log.d(TAG, "Loaded image via ProductImages for productId=" + cartItem.getProductId());
                 } else {
-                    Log.e(TAG, "Failed to load product details for ID: " + cartItem.getProductId());
+                    Log.w(TAG, "No product images for productId=" + cartItem.getProductId());
                 }
             }
-            
+
             @Override
-            public void onFailure(Call<ProductResponse> call, Throwable t) {
-                Log.e(TAG, "Error loading product details: " + t.getMessage());
+            public void onFailure(Call<java.util.List<ProductImage>> call, Throwable t) {
+                if (!isAdded()) return;
+                Log.w(TAG, "Error loading product images: " + t.getMessage());
             }
         });
     }
-    
+
     private void showEmptyState() {
         // Show empty state and hide cart items
         layoutEmptyCart.setVisibility(View.VISIBLE);
@@ -299,13 +395,13 @@ public class CartFragment extends Fragment {
             ((com.example.kibo.MainActivity) getActivity()).updateCartBadge(0);
         }
     }
-    
+
     private void showCartItems() {
         // Show cart items and hide empty state
         layoutEmptyCart.setVisibility(View.GONE);
         recyclerViewCartItems.setVisibility(View.VISIBLE);
         buttonContinue.setVisibility(View.VISIBLE);
-        
+
         // Update item count
         int totalItems = cartItems.size();
         textViewItemCount.setText(totalItems + " sản phẩm");
@@ -315,11 +411,11 @@ public class CartFragment extends Fragment {
             ((com.example.kibo.MainActivity) getActivity()).updateCartBadge(totalItems);
         }
     }
-    
+
     @Override
     public void onResume() {
         super.onResume();
-        // Reload cart items when returning to this fragment
-        loadCartItems();
+        // After returning (e.g., post-payment), re-check active cart from server
+        checkActiveCartAndLoad();
     }
 }

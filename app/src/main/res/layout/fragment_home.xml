@@ -77,7 +77,18 @@
                     android:tint="@android:color/white"
                     android:padding="8dp"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_heart_outline"/>
+                    android:src="@drawable/ic_heart_outline2"/>
+
+                <ImageButton
+                    android:id="@+id/btn_store_map"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@android:color/transparent"
+                    android:tint="@android:color/white"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    android:contentDescription="Vị trí cửa hàng"/>
 
                 <!-- Thông báo -->
                 <ImageButton
@@ -88,7 +99,7 @@
                     android:tint="@android:color/white"
                     android:padding="8dp"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_bell_outline"/>
+                    android:src="@drawable/ic_bell_outline2"/>
             </LinearLayout>
         </com.google.android.material.appbar.CollapsingToolbarLayout>
     </com.google.android.material.appbar.AppBarLayout>

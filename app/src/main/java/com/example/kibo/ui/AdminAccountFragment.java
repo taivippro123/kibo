@@ -89,6 +89,9 @@ public class AdminAccountFragment extends Fragment {
             
             // Display user role - show as Admin
             textViewUserRole.setText("Administrator");
+
+            // Show admin-only entries
+            // no admin-only items here
         }
     }
     
@@ -111,6 +114,8 @@ public class AdminAccountFragment extends Fragment {
                 }
             }
         });
+
+        // no admin store/order management button in account tab
     }
     
     private void openPersonalInfo() {

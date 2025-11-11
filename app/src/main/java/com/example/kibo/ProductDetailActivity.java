@@ -22,6 +22,8 @@ import com.example.kibo.models.Cart;
 import com.example.kibo.models.CartRequest;
 import com.example.kibo.models.CartItemRequest;
 import com.example.kibo.models.ApiResponse;
+import com.example.kibo.models.AddToWishlistRequest;
+import com.example.kibo.models.WishlistResponse;
 import com.example.kibo.utils.SessionManager;
 import com.example.kibo.adapters.ProductImageAdapter;
 import androidx.viewpager2.widget.ViewPager2;
@@ -59,6 +61,7 @@ public class ProductDetailActivity extends AppCompatActivity {
     private LinearLayout btnChat;
     private Button btnBuy;
     private FrameLayout loadingLayout;
+    private ImageButton btnAddToWishlist;
 
     // Quantity controls
     private Button btnDecrease;
@@ -126,6 +129,7 @@ public class ProductDetailActivity extends AppCompatActivity {
         btnChat = findViewById(R.id.btn_chat);
         btnBuy = findViewById(R.id.btn_buy);
         loadingLayout = findViewById(R.id.loading_layout);
+        btnAddToWishlist = findViewById(R.id.btn_add_to_wishlist);
 
         // Initialize quantity controls
         btnDecrease = findViewById(R.id.button_decrease);
@@ -135,6 +139,9 @@ public class ProductDetailActivity extends AppCompatActivity {
 
         // Setup quantity button listeners
         setupQuantityControls();
+
+        // Setup wishlist button listener
+        setupWishlistButton();
 
         // Setup image adapter
         imageAdapter = new ProductImageAdapter();
@@ -169,6 +176,56 @@ public class ProductDetailActivity extends AppCompatActivity {
             currentQuantity++;
             updateQuantityDisplay();
             updateTotalPrice();
+        });
+    }
+
+    private void setupWishlistButton() {
+        btnAddToWishlist.setOnClickListener(v -> {
+            if (!sessionManager.isLoggedIn()) {
+                Toast.makeText(this, "Vui lòng đăng nhập để thêm vào wishlist", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            addToWishlist();
+        });
+    }
+
+    private void addToWishlist() {
+        int userId = sessionManager.getUserId();
+        if (userId == -1 || currentProductId == -1) {
+            Toast.makeText(this, "Lỗi: Không thể thêm vào wishlist", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        showLoading(true);
+
+        // Create request with product ID array
+        int[] productIds = new int[] { currentProductId };
+        AddToWishlistRequest request = new AddToWishlistRequest(userId, productIds);
+
+        apiService.addToWishlist(request).enqueue(new Callback<List<com.example.kibo.models.WishlistResponse>>() {
+            @Override
+            public void onResponse(Call<List<com.example.kibo.models.WishlistResponse>> call,
+                    Response<List<com.example.kibo.models.WishlistResponse>> response) {
+                showLoading(false);
+
+                if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                    Toast.makeText(ProductDetailActivity.this,
+                            "Đã thêm vào wishlist!", Toast.LENGTH_SHORT).show();
+                    // Update icon to filled heart
+                    btnAddToWishlist.setImageResource(R.drawable.ic_heart_filled);
+                } else {
+                    Toast.makeText(ProductDetailActivity.this,
+                            "Không thể thêm vào wishlist", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<com.example.kibo.models.WishlistResponse>> call, Throwable t) {
+                showLoading(false);
+                Log.e(TAG, "Failed to add to wishlist", t);
+                Toast.makeText(ProductDetailActivity.this,
+                        "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -379,8 +436,59 @@ public class ProductDetailActivity extends AppCompatActivity {
         // Get user ID
         int userId = sessionManager.getUserId();
 
-        // Step 1: Create cart
-        CartRequest cartRequest = new CartRequest(userId, 0); // status = 0 (pending)
+        // Step 1: Check if user already has an active cart (status=1)
+        // If yes, use it. If no, create a new one.
+        ensureActiveCartAndAddProduct(userId);
+    }
+
+    private void ensureActiveCartAndAddProduct(int userId) {
+        // Check for existing active cart first
+        apiService.getCarts(userId, 100).enqueue(new Callback<com.example.kibo.models.PaginationResponse<Cart>>() {
+            @Override
+            public void onResponse(Call<com.example.kibo.models.PaginationResponse<Cart>> call,
+                    Response<com.example.kibo.models.PaginationResponse<Cart>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                    java.util.List<Cart> carts = response.body().getData();
+                    Log.d(TAG, "Checking for active cart. Found " + carts.size() + " carts");
+
+                    Cart activeCart = null;
+                    for (Cart c : carts) {
+                        if (c.getStatus() == 1) { // status=1 means active cart
+                            activeCart = c;
+                            break;
+                        }
+                    }
+
+                    if (activeCart != null) {
+                        // Use existing active cart
+                        int cartId = activeCart.getCartId();
+                        Log.d(TAG, "Using existing active cart ID: " + cartId);
+                        sessionManager.setActiveCartId(cartId);
+                        addProductToCart(cartId);
+                    } else {
+                        // No active cart found - create a new one
+                        Log.d(TAG, "No active cart found. Creating new cart.");
+                        createCartAndAddProduct(userId);
+                    }
+                } else {
+                    // API call failed - try to create new cart
+                    Log.w(TAG, "getCarts failed, creating new cart");
+                    createCartAndAddProduct(userId);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.example.kibo.models.PaginationResponse<Cart>> call, Throwable t) {
+                Log.e(TAG, "Error checking carts: " + t.getMessage());
+                // On error, try to create new cart
+                createCartAndAddProduct(userId);
+            }
+        });
+    }
+
+    private void createCartAndAddProduct(int userId) {
+        // Create new cart with status=1 (active)
+        CartRequest cartRequest = new CartRequest(userId, 1); // status = 1 (active/checked out)
         Call<Cart> createCartCall = apiService.createCart(cartRequest);
         createCartCall.enqueue(new Callback<Cart>() {
             @Override
@@ -426,8 +534,7 @@ public class ProductDetailActivity extends AppCompatActivity {
 
                 if (response.isSuccessful()) {
                     Toast.makeText(ProductDetailActivity.this, "Đã thêm vào giỏ hàng", Toast.LENGTH_SHORT).show();
-                    // Navigate to cart fragment ngay lập tức
-                    navigateToCart();
+                    // Stay on current page, don't navigate to cart
                 } else {
                     Toast.makeText(ProductDetailActivity.this, "Không thể thêm vào giỏ hàng", Toast.LENGTH_SHORT)
                             .show();
@@ -444,12 +551,4 @@ public class ProductDetailActivity extends AppCompatActivity {
         });
     }
 
-    private void navigateToCart() {
-        // Navigate to MainActivity with cart tab selected
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("selected_tab", 2); // Cart tab index
-        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(intent);
-        // Don't finish here; allow back to product details if needed
-    }
 }

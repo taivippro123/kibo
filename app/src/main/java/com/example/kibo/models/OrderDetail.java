@@ -13,15 +13,15 @@ public class OrderDetail {
     private int quantity;
     @SerializedName("unitPrice")
     private double unitPrice;
-    @SerializedName("totalPrice")
-    private double totalPrice;
+    @SerializedName("productName")
+    private String productName;
 
     public int getOrderDetailId() { return orderDetailId; }
     public int getOrderId() { return orderId; }
     public int getProductId() { return productId; }
     public int getQuantity() { return quantity; }
     public double getUnitPrice() { return unitPrice; }
-    public double getTotalPrice() { return totalPrice; }
+    public String getProductName() { return productName; }
 }
 
 

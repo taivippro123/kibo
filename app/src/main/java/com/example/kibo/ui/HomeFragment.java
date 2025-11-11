@@ -4,10 +4,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -22,6 +25,7 @@ import com.example.kibo.R;
 import com.example.kibo.WishlistActivity;
 import com.example.kibo.NotificationActivity;
 import com.example.kibo.ProductDetailActivity;
+import com.example.kibo.StoreMapActivity;
 import com.example.kibo.api.ApiClient;
 import com.example.kibo.models.Product;
 import com.example.kibo.models.ProductResponse;
@@ -35,27 +39,35 @@ import com.example.kibo.ui.FilterBottomSheet;
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
     private static final long AUTO_SCROLL_DELAY = 3000; // 3 seconds
-    
+
     private ProductAdapter productAdapter;
     private RecyclerView productsRecycler;
     private ViewPager2 bannerViewPager;
     private Handler autoScrollHandler;
     private Runnable autoScrollRunnable;
+    private EditText etSearch;
+    private List<Product> allProducts;
+    private Handler searchHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+            Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_home, container, false);
 
         // Setup banner carousel
         bannerViewPager = root.findViewById(R.id.banner_viewpager);
         setupBannerCarousel();
 
-        // Setup RecyclerView
         productsRecycler = root.findViewById(R.id.rv_products);
         productsRecycler.setLayoutManager(new GridLayoutManager(requireContext(), 2));
+
+        // Initialize adapter with empty list
         productAdapter = new ProductAdapter(new ArrayList<>());
         productsRecycler.setAdapter(productAdapter);
+
+        // Setup search functionality
+        etSearch = root.findViewById(R.id.et_search);
+        setupSearch();
 
         // Wishlist button click
         ImageButton btnWishlist = root.findViewById(R.id.btn_wishlist);
@@ -63,6 +75,15 @@ public class HomeFragment extends Fragment {
             Intent intent = new Intent(requireContext(), WishlistActivity.class);
             startActivity(intent);
         });
+
+        // Store Map button click (NEW - Google Maps)
+        ImageButton btnStoreMap = root.findViewById(R.id.btn_store_map);
+        if (btnStoreMap != null) {
+            btnStoreMap.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), StoreMapActivity.class);
+                startActivity(intent);
+            });
+        }
 
         // Notification button click
         ImageButton btnNotification = root.findViewById(R.id.btn_notification);
@@ -85,17 +106,62 @@ public class HomeFragment extends Fragment {
         return root;
     }
 
+    private void setupSearch() {
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // Debounce search to avoid too many filter operations
+                searchHandler.removeCallbacksAndMessages(null);
+                searchHandler.postDelayed(() -> filterProducts(s.toString()), 300);
+            }
+        });
+    }
+
+    private void filterProducts(String query) {
+        if (allProducts == null || allProducts.isEmpty()) {
+            return;
+        }
+
+        if (query == null || query.trim().isEmpty()) {
+            // Show all products if search is empty
+            productAdapter.updateProducts(allProducts);
+            return;
+        }
+
+        // Filter products by name
+        List<Product> filteredProducts = new ArrayList<>();
+        String searchQuery = query.toLowerCase().trim();
+
+        for (Product product : allProducts) {
+            String productName = product.getProductName().toLowerCase();
+            if (productName.contains(searchQuery)) {
+                filteredProducts.add(product);
+            }
+        }
+
+        productAdapter.updateProducts(filteredProducts);
+        Log.d(TAG, "Filtered products: " + filteredProducts.size() + " matching '" + query + "'");
+    }
+
     private void setupBannerCarousel() {
         // Banner images
         int[] bannerImages = {
-            R.drawable.win60,
-            R.drawable.f87,
-            R.drawable.f65
+                R.drawable.win60,
+                R.drawable.f87,
+                R.drawable.f65
         };
-        
+
         BannerAdapter bannerAdapter = new BannerAdapter(bannerImages);
         bannerViewPager.setAdapter(bannerAdapter);
-        
+
         // Setup auto-scroll
         autoScrollHandler = new Handler(Looper.getMainLooper());
         autoScrollRunnable = new Runnable() {
@@ -126,23 +192,26 @@ public class HomeFragment extends Fragment {
             @Override
             public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
                 Log.d(TAG, "Response received. Code: " + response.code());
-                
+
                 if (response.isSuccessful() && response.body() != null) {
                     ProductResponse productResponse = response.body();
                     Log.d(TAG, "Response body is not null");
-                    
+
                     List<Product> products = productResponse.getData();
-                    
+
                     if (products != null) {
                         Log.d(TAG, "Products list size: " + products.size());
-                        
+
                         if (!products.isEmpty()) {
+                            // Store all products for search functionality
+                            allProducts = products;
                             productAdapter.updateProducts(products);
                             Log.d(TAG, "Successfully loaded " + products.size() + " products");
-                            
+
                             // Log first product details
                             Product firstProduct = products.get(0);
-                            Log.d(TAG, "First product: " + firstProduct.getProductName() + " - " + firstProduct.getFormattedPrice());
+                            Log.d(TAG, "First product: " + firstProduct.getProductName() + " - "
+                                    + firstProduct.getFormattedPrice());
                         } else {
                             Log.w(TAG, "Products list is empty");
                             Toast.makeText(requireContext(), "Không có sản phẩm nào", Toast.LENGTH_SHORT).show();
@@ -154,12 +223,14 @@ public class HomeFragment extends Fragment {
                 } else {
                     Log.e(TAG, "Response not successful: " + response.code());
                     try {
-                        String errorBody = response.errorBody() != null ? response.errorBody().string() : "No error body";
+                        String errorBody = response.errorBody() != null ? response.errorBody().string()
+                                : "No error body";
                         Log.e(TAG, "Error body: " + errorBody);
                     } catch (Exception e) {
                         Log.e(TAG, "Cannot read error body", e);
                     }
-                    Toast.makeText(requireContext(), "Không thể tải sản phẩm (Code: " + response.code() + ")", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Không thể tải sản phẩm (Code: " + response.code() + ")",
+                            Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -196,19 +267,19 @@ public class HomeFragment extends Fragment {
             Product product = products.get(position);
             holder.name.setText(product.getProductName());
             holder.price.setText(product.getFormattedPrice());
-            
+
             // Load image with Glide
             if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
                 Glide.with(holder.itemView.getContext())
-                    .load(product.getImageUrl())
-                    .placeholder(R.drawable.kibo_logo)
-                    .error(R.drawable.kibo_logo)
-                    .centerCrop()
-                    .into(holder.image);
+                        .load(product.getImageUrl())
+                        .placeholder(R.drawable.kibo_logo)
+                        .error(R.drawable.kibo_logo)
+                        .centerCrop()
+                        .into(holder.image);
             } else {
                 holder.image.setImageResource(R.drawable.kibo_logo);
             }
-            
+
             // Click to view product detail
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(v.getContext(), ProductDetailActivity.class);

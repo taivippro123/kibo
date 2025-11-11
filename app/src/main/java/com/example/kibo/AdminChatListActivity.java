@@ -26,6 +26,9 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import android.view.MenuItem;
+import androidx.annotation.NonNull;
 
 public class AdminChatListActivity extends AppCompatActivity implements AdminConversationAdapter.OnConversationClickListener {
 
@@ -33,6 +36,7 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
     private RecyclerView rvAdminConversations;
     private ProgressBar progressBar;
     private LinearLayout layoutEmpty;
+    private BottomNavigationView bottomNav;
     
     private AdminConversationAdapter adapter;
     private List<ConversationResponse> conversations;
@@ -42,6 +46,8 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
     private Handler refreshHandler;
     private Runnable refreshRunnable;
     private boolean isLoading = false;
+    private int currentAdminId;
+    private int lastInteractedConversationId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +56,12 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
 
         initializeViews();
         setupToolbar();
+        setupBottomNav();
         setupRecyclerView();
+        
+        // Get admin ID from session (assuming admin is logged in)
+        // You might need to get this from SessionManager
+        currentAdminId = 1; // This should be the actual admin ID from session
         
         apiService = ApiClient.getApiServiceWithAuth(this);
         conversations = new ArrayList<>();
@@ -68,6 +79,46 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
         rvAdminConversations = findViewById(R.id.rv_admin_conversations);
         progressBar = findViewById(R.id.progress_bar_admin_chat);
         layoutEmpty = findViewById(R.id.layout_empty_admin_chat);
+        bottomNav = findViewById(R.id.admin_bottom_nav);
+    }
+
+    private void setupBottomNav() {
+        if (bottomNav == null) return;
+        bottomNav.setSelectedItemId(R.id.nav_admin_messages);
+        bottomNav.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                int id = item.getItemId();
+                if (id == R.id.nav_admin_dashboard) {
+                    Intent intent = new Intent(AdminChatListActivity.this, AdminMainActivity.class);
+                    intent.putExtra("fragment", "dashboard");
+                    intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(intent);
+                    return true;
+                } else if (id == R.id.nav_admin_products) {
+                    Intent intent = new Intent(AdminChatListActivity.this, AdminManagementActivity.class);
+                    startActivity(intent);
+                    return true;
+                } else if (id == R.id.nav_admin_orders) {
+                    // Chuyển sang AdminMainActivity và load OrdersFragment
+                    Intent intent = new Intent(AdminChatListActivity.this, AdminMainActivity.class);
+                    intent.putExtra("fragment", "orders");
+                    intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(intent);
+                    return true;
+                } else if (id == R.id.nav_admin_messages) {
+                    // already here
+                    return true;
+                } else if (id == R.id.nav_admin_account) {
+                    Intent intent = new Intent(AdminChatListActivity.this, AdminMainActivity.class);
+                    intent.putExtra("fragment", "account");
+                    intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(intent);
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     private void setupToolbar() {
@@ -120,9 +171,10 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                     conversations.clear();
                     conversations.addAll(response.body().getData());
                     
-                    // Ensure all conversations start with no highlight (read state)
+                    // Server now provides correct hasUnreadMessages based on IsRead field
+                    // Trust the server data instead of client-side calculation
                     for (ConversationResponse conv : conversations) {
-                        conv.setHasUnreadMessages(false);
+                        System.out.println("Conversation " + conv.getConversationid() + " - hasUnreadMessages: " + conv.isHasUnreadMessages());
                     }
                     
                     // Sort by latest activity (lastMessageTime fallback to createdat)
@@ -143,6 +195,12 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                     }
                     
                     System.out.println("Loaded " + conversations.size() + " conversations");
+                    
+                    // Server already provides hasUnreadMessages correctly, no need to call additional API
+                    // This avoids crashes and improves performance
+                    // for (ConversationResponse conv : conversations) {
+                    //     getUnreadMessageCount(conv.getConversationid());
+                    // }
                 } else {
                     String errorMsg = "Không thể tải danh sách cuộc trò chuyện. Mã lỗi: " + response.code();
                     if (response.errorBody() != null) {
@@ -210,6 +268,12 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
             adapter.notifyItemChanged(index);
         }
         
+        // Store the conversation ID that admin is about to interact with
+        lastInteractedConversationId = conversation.getConversationid();
+        
+        // Call API to mark conversation as read
+        markConversationAsRead(conversation.getConversationid());
+        
         Intent intent = new Intent(this, AdminChatDetailActivity.class);
         intent.putExtra("conversation_id", conversation.getConversationid());
         intent.putExtra("customer_id", conversation.getCustomerid());
@@ -231,12 +295,25 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
     }
 
     @Override
+    public void onBackPressed() {
+        Intent intent = new Intent(this, AdminMainActivity.class);
+        intent.putExtra("fragment", "dashboard");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         // Restart SignalR if needed, avoid reload to prevent flicker
         if (signalRManager == null || !signalRManager.isConnected()) {
             startSignalR();
         }
+        
+        // Update conversation highlights when returning from chat detail
+        // This ensures conversations are not highlighted if admin just sent a message
+        updateConversationHighlights();
     }
 
     private void startSignalR() {
@@ -289,8 +366,8 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                             conv.setLastMessageTime(now);
                         } catch (Exception ignored) {}
                         
-                        // Mark as new message for highlighting
-                        conv.setHasUnreadMessages(true);
+                        // Mark as new message for highlighting only if not from admin
+                        conv.setHasUnreadMessages(senderId != currentAdminId);
                         
                         // Move to top with smooth animation
                         conversations.remove(index);
@@ -319,8 +396,8 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                             conv.setLastMessageTime(now);
                         } catch (Exception ignored) {}
                         
-                        // Mark as new message for highlighting
-                        conv.setHasUnreadMessages(true);
+                        // Mark as new message for highlighting only if not from admin
+                        conv.setHasUnreadMessages(senderId != currentAdminId);
                         
                         // Update only the top item with smooth animation
                         adapter.notifyItemChanged(0);
@@ -346,12 +423,16 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                         preview.setSentAt(sentAt);
                         tempConv.getLastMessages().add(preview);
                         
-                        // Mark as new message for highlighting
-                        tempConv.setHasUnreadMessages(true);
+                        // Mark as new message for highlighting only if not from admin
+                        tempConv.setHasUnreadMessages(senderId != currentAdminId);
                         
                         // Add to top of list with smooth animation
                         conversations.add(0, tempConv);
                         adapter.notifyItemInserted(0);
+                        // Ensure list is visible if it was previously empty
+                        showEmptyState(false);
+                        // Scroll to top to reveal the new conversation
+                        rvAdminConversations.scrollToPosition(0);
                         
                         System.out.println("Added new conversation " + conversationId + " to top with smooth animation and highlight");
                         
@@ -404,8 +485,8 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                 conv.setLastMessageTime(now);
             } catch (Exception ignored) {}
             
-            // Mark as new message for highlighting
-            conv.setHasUnreadMessages(true);
+            // Mark as new message for highlighting only if not from admin
+            conv.setHasUnreadMessages(msg.getSenderId() != currentAdminId);
             
             // Move to top with smooth animation
             conversations.remove(index);
@@ -434,8 +515,8 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
                 conv.setLastMessageTime(now);
             } catch (Exception ignored) {}
             
-            // Mark as new message for highlighting
-            conv.setHasUnreadMessages(true);
+            // Mark as new message for highlighting only if not from admin
+            conv.setHasUnreadMessages(msg.getSenderId() != currentAdminId);
             
             // Update only the top item with smooth animation
             adapter.notifyItemChanged(0);
@@ -461,12 +542,16 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
             preview.setSentAt(msg.getSentAt());
             tempConv.getLastMessages().add(preview);
             
-            // Mark as new message for highlighting
-            tempConv.setHasUnreadMessages(true);
+            // Mark as new message for highlighting only if not from admin
+            tempConv.setHasUnreadMessages(msg.getSenderId() != currentAdminId);
             
             // Add to top of list with smooth animation
             conversations.add(0, tempConv);
             adapter.notifyItemInserted(0);
+            // Ensure list is visible if it was previously empty
+            showEmptyState(false);
+            // Scroll to top to reveal the new conversation
+            rvAdminConversations.scrollToPosition(0);
             
             System.out.println("Added new conversation " + conversationId + " to top with smooth animation and highlight");
             
@@ -543,5 +628,120 @@ public class AdminChatListActivity extends AppCompatActivity implements AdminCon
     }
 
     private long lastReloadTime = 0;
+
+    private void markConversationAsRead(int conversationId) {
+        System.out.println("Marking conversation " + conversationId + " as read...");
+        
+        Call<com.example.kibo.models.ApiResponse<String>> call = apiService.markConversationAsRead(conversationId);
+        call.enqueue(new Callback<com.example.kibo.models.ApiResponse<String>>() {
+            @Override
+            public void onResponse(Call<com.example.kibo.models.ApiResponse<String>> call, Response<com.example.kibo.models.ApiResponse<String>> response) {
+                if (response.isSuccessful()) {
+                    System.out.println("Successfully marked conversation " + conversationId + " as read");
+                    // Có thể thêm logic để cập nhật UI nếu cần
+                } else {
+                    System.out.println("Failed to mark conversation as read: " + response.code());
+                    if (response.errorBody() != null) {
+                        try {
+                            String errorMsg = response.errorBody().string();
+                            System.out.println("Error details: " + errorMsg);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
+                System.out.println("Error marking conversation as read: " + t.getMessage());
+                t.printStackTrace();
+            }
+        });
+    }
+
+    private void getUnreadMessageCount(int conversationId) {
+        System.out.println("Getting unread message count for conversation " + conversationId + "...");
+        
+        Call<com.example.kibo.models.ApiResponse<com.example.kibo.models.UnreadCountResponse>> call = apiService.getUnreadMessageCount(conversationId);
+        call.enqueue(new Callback<com.example.kibo.models.ApiResponse<com.example.kibo.models.UnreadCountResponse>>() {
+            @Override
+            public void onResponse(Call<com.example.kibo.models.ApiResponse<com.example.kibo.models.UnreadCountResponse>> call, Response<com.example.kibo.models.ApiResponse<com.example.kibo.models.UnreadCountResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                    com.example.kibo.models.UnreadCountResponse unreadData = response.body().getData();
+                    System.out.println("Unread count for conversation " + conversationId + ": " + unreadData.getUnreadCount());
+                    System.out.println("Total messages: " + unreadData.getTotalMessages());
+                    
+                    // Cập nhật UI với thông tin tin nhắn chưa đọc
+                    runOnUiThread(() -> {
+                        int index = findConversationIndex(conversationId);
+                        if (index >= 0) {
+                            ConversationResponse conv = conversations.get(index);
+                            // Cập nhật trạng thái highlight dựa trên số tin nhắn chưa đọc
+                            conv.setHasUnreadMessages(unreadData.getUnreadCount() > 0);
+                            adapter.notifyItemChanged(index);
+                            System.out.println("Updated conversation " + conversationId + " highlight status: " + conv.isHasUnreadMessages());
+                        }
+                    });
+                } else {
+                    System.out.println("Failed to get unread count: " + response.code());
+                    if (response.body() != null) {
+                        System.out.println("Response body exists but data is null");
+                    } else {
+                        System.out.println("Response body is null");
+                    }
+                    if (response.errorBody() != null) {
+                        try {
+                            String errorMsg = response.errorBody().string();
+                            System.out.println("Error details: " + errorMsg);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.example.kibo.models.ApiResponse<com.example.kibo.models.UnreadCountResponse>> call, Throwable t) {
+                System.out.println("Error getting unread count: " + t.getMessage());
+                t.printStackTrace();
+            }
+        });
+    }
+
+    private void updateConversationHighlights() {
+        // If admin just returned from a conversation, remove highlight from that conversation
+        // This handles the case where admin sent a message and returned to the list
+        if (lastInteractedConversationId > 0) {
+            int index = findConversationIndex(lastInteractedConversationId);
+            if (index >= 0) {
+                ConversationResponse conv = conversations.get(index);
+                if (conv.isHasUnreadMessages()) {
+                    conv.setHasUnreadMessages(false);
+                    adapter.notifyItemChanged(index);
+                    System.out.println("Removed highlight from conversation " + lastInteractedConversationId + " - admin just returned from this conversation");
+                }
+            }
+            // Reset the flag after processing
+            lastInteractedConversationId = -1;
+        }
+        
+        // Also check for any conversations that might have been updated recently
+        // and remove highlight if the last message is very recent (likely from admin)
+        for (int i = 0; i < conversations.size(); i++) {
+            ConversationResponse conv = conversations.get(i);
+            
+            if (conv.getLastMessageTime() != null && conv.isHasUnreadMessages()) {
+                long timeDiff = System.currentTimeMillis() - conv.getLastMessageTime().getTime();
+                // If message is very recent (within 3 seconds), it might be from admin
+                // Remove highlight to be safe
+                if (timeDiff < 3000) {
+                    conv.setHasUnreadMessages(false);
+                    adapter.notifyItemChanged(i);
+                    System.out.println("Removed highlight from conversation " + conv.getConversationid() + " - very recent message (likely admin)");
+                }
+            }
+        }
+    }
 
 }

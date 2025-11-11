@@ -34,6 +34,7 @@ dependencies {
     implementation libs.material
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.viewpager2:viewpager2:1.0.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
@@ -62,4 +63,20 @@ dependencies {
 
     // SignalR Java client for realtime chat
     implementation 'com.microsoft.signalr:signalr:8.0.6'
+    
+    // MPAndroidChart for dashboard analytics
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
+    // Google Maps for Store Location
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+
+    // OpenStreetMap via osmdroid (OLD - no API key required)
+    implementation 'org.osmdroid:osmdroid-android:6.1.18'
+    
+    // WorkManager for background tasks
+    implementation 'androidx.work:work-runtime:2.8.1'
+    
+    // ShortcutBadger for app icon badge (supports multiple launchers)
+    implementation 'me.leolin:ShortcutBadger:1.1.22@aar'
 }
