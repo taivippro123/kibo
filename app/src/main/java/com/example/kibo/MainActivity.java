@@ -10,10 +10,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import com.example.kibo.api.ApiClient;
 import com.example.kibo.api.ApiService;
 import com.example.kibo.models.CartItemsResponse;
+import com.example.kibo.notifications.NotificationHelper;
 import com.example.kibo.ui.AccountFragment;
 import com.example.kibo.ui.CartFragment;
 import com.example.kibo.ui.HomeFragment;
@@ -21,21 +26,12 @@ import com.example.kibo.ui.OrdersFragment;
 import com.example.kibo.utils.SessionManager;
 import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import androidx.core.content.ContextCompat;
-import com.example.kibo.api.ApiClient;
-import com.example.kibo.api.ApiService;
-import com.example.kibo.models.CartItemsResponse;
-import com.example.kibo.utils.SessionManager;
-import com.example.kibo.notifications.NotificationHelper;
+
+import java.util.concurrent.TimeUnit;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import androidx.work.PeriodicWorkRequest;
-import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.WorkManager;
-import java.util.concurrent.TimeUnit;
-import android.content.Intent;
-import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -44,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private ApiService apiService;
     private SessionManager sessionManager;
 
-    // Fragment instances for reuse
+    // Fragments
     private HomeFragment homeFragment;
     private OrdersFragment ordersFragment;
     private CartFragment cartFragment;
@@ -63,156 +59,98 @@ public class MainActivity extends AppCompatActivity {
         apiService = ApiClient.getApiService();
         sessionManager = new SessionManager(this);
 
-        // Menu is already set via XML (app:menu in activity_main.xml), avoid inflating
-        // again
-
         // Initialize fragments
         initializeFragments();
 
         // Load initial tab
         int selectedTab = getIntent().getIntExtra("selected_tab", 0);
-
-        // Mở mặc định trang Home hoặc tab được chỉ định
         Fragment initialFragment = getFragmentByTab(selectedTab);
         loadFragment(initialFragment);
         setSelectedTab(selectedTab);
 
-        // Bottom navigation listener
+        // Handle bottom nav
         bottomNav.setOnItemSelectedListener(this::onBottomNavSelected);
 
         // Pull-to-refresh listener
         swipeRefreshLayout.setOnRefreshListener(() -> {
             Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.frame_container);
             if (currentFragment != null) {
-                getSupportFragmentManager()
-                        .beginTransaction()
+                getSupportFragmentManager().beginTransaction()
                         .detach(currentFragment)
                         .commitNow();
-
-                getSupportFragmentManager()
-                        .beginTransaction()
+                getSupportFragmentManager().beginTransaction()
                         .attach(currentFragment)
                         .commitNow();
             }
 
-            // Refresh cart badge
             refreshCartBadge();
-
-            // Kết thúc hiệu ứng refresh sau 1s
             swipeRefreshLayout.postDelayed(() -> swipeRefreshLayout.setRefreshing(false), 1000);
         });
 
-
         // Initial badge refresh
-        refreshCartBadge();
+        bottomNav.post(this::refreshCartBadge);
+
+        // Schedule background badge updater
+        scheduleCartBadgeWorker();
     }
 
     /** Handle bottom navigation clicks */
     private boolean onBottomNavSelected(@NonNull MenuItem item) {
         Fragment selected = null;
-        int id = item.getItemId();
 
+        int id = item.getItemId();
         if (id == R.id.nav_home) selected = homeFragment;
         else if (id == R.id.nav_orders) selected = ordersFragment;
         else if (id == R.id.nav_cart) selected = cartFragment;
         else if (id == R.id.nav_account) selected = accountFragment;
 
-                if (selected != null) {
-                    // Avoid replacing with the same fragment instance to prevent crashes
-                    Fragment current = getSupportFragmentManager().findFragmentById(R.id.frame_container);
-                    if (current != null && current.getClass().equals(selected.getClass())) {
-                        return true; // already showing
-                    }
-                    loadFragment(selected);
-                    return true;
-                }
-
-                return false;
+        if (selected != null) {
+            Fragment current = getSupportFragmentManager().findFragmentById(R.id.frame_container);
+            if (current != null && current.getClass().equals(selected.getClass())) {
+                return true; // tránh reload cùng fragment
             }
-
-        // Refresh cart badge immediately on launch (e.g., right after login)
-        // Post to handler to ensure bottomNav is fully initialized
-        bottomNav.post(new Runnable() {
-            @Override
-            public void run() {
-                refreshCartBadge();
-            }
-        });
-
-        // Don't clear notification - keep it to show badge on app icon
-        // Just update it silently when app is open
-
-        // Schedule periodic background worker to update app icon badge even when app is
-        // closed
-        // Uses WorkManager with a 15-minute minimum interval (system-enforced)
-        try {
-            // Run worker immediately once on app launch to set initial badge
-            androidx.work.OneTimeWorkRequest initialWorkRequest = new androidx.work.OneTimeWorkRequest.Builder(
-                    com.example.kibo.workers.CartBadgeWorker.class)
-                    .setInitialDelay(3, TimeUnit.SECONDS)
-                    .build();
-            WorkManager.getInstance(this).enqueue(initialWorkRequest);
-
-            // Then schedule periodic work for when app is closed
-            PeriodicWorkRequest workRequest = new PeriodicWorkRequest.Builder(
-                    com.example.kibo.workers.CartBadgeWorker.class,
-                    15, TimeUnit.MINUTES)
-                    .setInitialDelay(15, TimeUnit.MINUTES)
-                    .build();
-
-            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-                    "cart_badge_worker",
-                    ExistingPeriodicWorkPolicy.KEEP,
-                    workRequest);
-        } catch (Exception ignored) {
-            // If scheduling fails, we won't crash the app; worker will be scheduled when
-            // possible
+            loadFragment(selected);
+            return true;
         }
+
+        return false;
     }
 
+    /** Load fragment vào frame_container */
     private void loadFragment(Fragment fragment) {
-        getSupportFragmentManager()
-                .beginTransaction()
+        getSupportFragmentManager().beginTransaction()
                 .replace(R.id.frame_container, fragment)
                 .commit();
     }
 
-    /** Update cart badge number */
+    /** Cập nhật badge giỏ hàng */
     public void updateCartBadge(int count) {
-        if (bottomNav == null) {
-            return;
-        }
+        if (bottomNav == null) return;
 
-        // Remove old badge first to ensure clean state
         bottomNav.removeBadge(R.id.nav_cart);
 
         if (count > 0) {
-            // Create new badge
             BadgeDrawable badge = bottomNav.getOrCreateBadge(R.id.nav_cart);
             badge.setVisible(true);
             badge.setNumber(count);
             badge.setBackgroundColor(ContextCompat.getColor(this, R.color.primary_color));
             badge.setBadgeTextColor(ContextCompat.getColor(this, android.R.color.white));
-            badge.setBadgeGravity(BadgeDrawable.TOP_END);
             badge.setMaxCharacterCount(3);
         }
 
-        // Also update app icon badge when updating bottom nav badge
         try {
             me.leolin.shortcutbadger.ShortcutBadger.applyCount(this, count);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // Update notification to reflect badge on app icon
-        if (count > 0) {
+        if (count > 0)
             NotificationHelper.showCartNotification(this, count);
-        } else {
+        else
             NotificationHelper.clearCartNotification(this);
-        }
     }
 
-    /** Fetch and update cart badge */
+    /** Lấy dữ liệu giỏ hàng và cập nhật badge */
     public void refreshCartBadge() {
         if (sessionManager == null)
             sessionManager = new SessionManager(this);
@@ -242,25 +180,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        if (intent == null || bottomNav == null)
-            return;
-        int selectedTab = intent.getIntExtra("selected_tab", -1);
-        if (selectedTab == -1)
-            return;
-
-        Fragment target = getFragmentByTab(selectedTab);
-        if (target != null) {
-            loadFragment(target);
-            setSelectedTab(selectedTab);
-        }
-    }
-
-    // ============ Helper Methods ============
-
+    /** Khởi tạo fragments */
     private void initializeFragments() {
         homeFragment = new HomeFragment();
         ordersFragment = new OrdersFragment();
@@ -268,10 +188,9 @@ public class MainActivity extends AppCompatActivity {
         accountFragment = new AccountFragment();
     }
 
+    /** Xác định fragment theo tab */
     private Fragment getFragmentByTab(int tabIndex) {
         switch (tabIndex) {
-            case 0:
-                return homeFragment;
             case 1:
                 return ordersFragment;
             case 2:
@@ -283,31 +202,51 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /** Đặt tab đang chọn */
     private void setSelectedTab(int tabIndex) {
+        int id;
         switch (tabIndex) {
-            case 0:
-                bottomNav.setSelectedItemId(R.id.nav_home);
-                break;
             case 1:
-                bottomNav.setSelectedItemId(R.id.nav_orders);
+                id = R.id.nav_orders;
                 break;
             case 2:
-                bottomNav.setSelectedItemId(R.id.nav_cart);
+                id = R.id.nav_cart;
                 break;
             case 3:
-                bottomNav.setSelectedItemId(R.id.nav_account);
+                id = R.id.nav_account;
                 break;
             default:
-                bottomNav.setSelectedItemId(R.id.nav_home);
+                id = R.id.nav_home;
                 break;
+        }
+        bottomNav.setSelectedItemId(id);
+    }
+
+
+    /** Lên lịch chạy Worker để cập nhật badge nền */
+    private void scheduleCartBadgeWorker() {
+        try {
+            // chạy ngay 1 lần đầu tiên sau 3s
+            OneTimeWorkRequest initialWork = new OneTimeWorkRequest.Builder(com.example.kibo.workers.CartBadgeWorker.class)
+                    .setInitialDelay(3, TimeUnit.SECONDS)
+                    .build();
+            WorkManager.getInstance(this).enqueue(initialWork);
+
+            // schedule lặp 15 phút
+            PeriodicWorkRequest periodicWork = new PeriodicWorkRequest.Builder(
+                    com.example.kibo.workers.CartBadgeWorker.class,
+                    15, TimeUnit.MINUTES)
+                    .build();
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                    "cart_badge_worker",
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    periodicWork);
+        } catch (Exception ignored) {
         }
     }
 
-    // ============ Logout Functionality ============
-
-    /**
-     * Perform logout with API call and navigate to login
-     */
+    /** Logout user */
     public void performLogout() {
         if (sessionManager == null)
             sessionManager = new SessionManager(this);
@@ -332,6 +271,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /** Điều hướng về LoginActivity */
     private void navigateToLogin() {
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -339,18 +279,12 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    // ============ Session Management ============
-
-    /**
-     * Check if user is still logged in
-     */
+    /** Kiểm tra user còn đăng nhập không */
     public boolean isUserLoggedIn() {
         return sessionManager != null && sessionManager.isLoggedIn();
     }
 
-    /**
-     * Handle session expired
-     */
+    /** Xử lý khi session hết hạn */
     public void handleSessionExpired() {
         runOnUiThread(() -> {
             Toast.makeText(this, "Phiên đăng nhập đã hết hạn", Toast.LENGTH_SHORT).show();
