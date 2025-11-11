@@ -95,6 +95,13 @@ public interface ApiService {
     // Get product by ID
     @GET("Products")
     Call<ProductResponse> getProductById(@Query("Productid") int productId);
+    @GET("Products")
+    Call<ProductResponse> getProductsFiltered(
+            @Query("CategoryId") Integer categoryId,
+            @Query("MinPrice") Double minPrice,
+            @Query("MaxPrice") Double maxPrice
+    );
+
 
     // Get product detail by ID (direct endpoint)
     @GET("Products/{id}")
