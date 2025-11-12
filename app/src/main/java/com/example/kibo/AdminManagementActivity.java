@@ -90,9 +90,16 @@ public class AdminManagementActivity extends AppCompatActivity {
         } else if (id == R.id.nav_admin_products) {
             // Already in Products, do nothing
             return true;
-        } else if (id == R.id.nav_admin_messages) {
+        } else if (id == R.id.nav_admin_orders) {
+            // Chuyển sang AdminMainActivity và load OrdersFragment
             Intent intent = new Intent(this, AdminMainActivity.class);
-            intent.putExtra("fragment", "messages");
+            intent.putExtra("fragment", "orders");
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP); // Để onNewIntent() được gọi khi Activity đã tồn tại
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.nav_admin_messages) {
+            // Mở AdminChatListActivity (giống như cách từ Trang chủ qua Chat)
+            Intent intent = new Intent(this, AdminChatListActivity.class);
             startActivity(intent);
             return true;
         } else if (id == R.id.nav_admin_account) {

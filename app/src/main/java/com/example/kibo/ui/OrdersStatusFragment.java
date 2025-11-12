@@ -17,6 +17,9 @@ import com.example.kibo.models.OrderDetail;
 import com.example.kibo.models.OrderDetailsResponse;
 import com.example.kibo.models.Product;
 import com.example.kibo.models.ProductResponse;
+import com.example.kibo.models.ProductImage;
+import com.example.kibo.models.CartItem;
+import com.example.kibo.models.CartItemsResponse;
 import com.example.kibo.utils.SessionManager;
 
 import com.bumptech.glide.Glide;
@@ -185,33 +188,9 @@ public class OrdersStatusFragment extends Fragment {
                 fragment.navigateToOrderDetail(o);
             });
 
-            // Fetch first order detail
+            // Load order details to get accurate product data (use orderId from order)
             ApiService api = ApiClient.getApiService();
-            api.getOrderDetails(o.getOrderId()).enqueue(new retrofit2.Callback<OrderDetailsResponse>() {
-                @Override
-                public void onResponse(retrofit2.Call<OrderDetailsResponse> call, retrofit2.Response<OrderDetailsResponse> response) {
-                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
-                        OrderDetail od = response.body().getData().get(0);
-                        holder.tvQuantity.setText("x" + od.getQuantity());
-                        // Fetch product
-                        api.getProductById(od.getProductId()).enqueue(new retrofit2.Callback<ProductResponse>() {
-                            @Override
-                            public void onResponse(retrofit2.Call<ProductResponse> call2, retrofit2.Response<ProductResponse> resp2) {
-                                if (resp2.isSuccessful() && resp2.body() != null && resp2.body().getData() != null && !resp2.body().getData().isEmpty()) {
-                                    Product p = resp2.body().getData().get(0);
-                                    holder.tvName.setText(p.getProductName());
-                                    holder.tvPrice.setText(String.format("%,.0fđ", p.getPrice()));
-                                    Glide.with(holder.img.getContext()).load(p.getImageUrl()).into(holder.img);
-                                }
-                            }
-
-                            @Override public void onFailure(retrofit2.Call<ProductResponse> call2, Throwable t) { }
-                        });
-                    }
-                }
-
-                @Override public void onFailure(retrofit2.Call<OrderDetailsResponse> call, Throwable t) { }
-            });
+            loadOrderDetailsForOrder(o, holder);
 
             // Payment info: fetch by paymentId if present
             Integer paymentId = o.getPaymentId();
@@ -223,6 +202,7 @@ public class OrdersStatusFragment extends Fragment {
                             com.example.kibo.models.Payment p = response.body().get(0);
                             int method = p.getPaymentMethod();
                             int status = p.getPaymentStatus();
+                            double amount = p.getAmount();
 
                             // Filter rules
                             boolean shouldShow = (method == 1 && status == 1) || (method == 2);
@@ -239,6 +219,9 @@ public class OrdersStatusFragment extends Fragment {
                             String statusText = status == 1 ? "Đã thanh toán" : "Chưa thanh toán";
                             holder.tvPaymentMethod.setText("Phương thức thanh toán: " + methodText);
                             holder.tvPaymentStatus.setText("Trạng thái: " + statusText);
+
+                            // Display total order amount from payment
+                            holder.tvPrice.setText(String.format("%,.0fđ", amount));
                         }
                     }
 
@@ -251,6 +234,55 @@ public class OrdersStatusFragment extends Fragment {
         }
 
         @Override public int getItemCount() { return orders.size(); }
+        
+        private void loadProductImage(int productId, ImageView imageView) {
+            ApiService api = ApiClient.getApiService();
+            api.getProductImages(productId).enqueue(new retrofit2.Callback<java.util.List<ProductImage>>() {
+                @Override
+                public void onResponse(retrofit2.Call<java.util.List<ProductImage>> call, retrofit2.Response<java.util.List<ProductImage>> response) {
+                    if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                        java.util.List<ProductImage> images = response.body();
+                        String chosenUrl = null;
+                        // Prefer primary image, otherwise use first image
+                        for (ProductImage img : images) {
+                            if (img.isPrimary()) {
+                                chosenUrl = img.getImageUrl();
+                                break;
+                            }
+                        }
+                        if (chosenUrl == null) {
+                            chosenUrl = images.get(0).getImageUrl();
+                        }
+                        if (chosenUrl != null) {
+                            Glide.with(imageView.getContext()).load(chosenUrl).into(imageView);
+                        }
+                    }
+                }
+                @Override
+                public void onFailure(retrofit2.Call<java.util.List<ProductImage>> call, Throwable t) { }
+            });
+        }
+        
+        private void loadOrderDetailsForOrder(Order order, OrderVH holder) {
+            ApiService api = ApiClient.getApiService();
+            api.getOrderDetails(order.getOrderId()).enqueue(new retrofit2.Callback<OrderDetailsResponse>() {
+                @Override
+                public void onResponse(retrofit2.Call<OrderDetailsResponse> call, retrofit2.Response<OrderDetailsResponse> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
+                        java.util.List<OrderDetail> orderDetails = response.body().getData();
+                        // Display first product (index 0) for list view
+                        OrderDetail firstDetail = orderDetails.get(0);
+                        holder.tvName.setText(firstDetail.getProductName());
+                        holder.tvPrice.setText(String.format("%,.0fđ", firstDetail.getUnitPrice()));
+                        holder.tvQuantity.setText("x" + firstDetail.getQuantity());
+                        
+                        // Load product image using ProductImages API
+                        loadProductImage(firstDetail.getProductId(), holder.img);
+                    }
+                }
+                @Override public void onFailure(retrofit2.Call<OrderDetailsResponse> call, Throwable t) { }
+            });
+        }
         
         private String getStatusText(int orderStatus) {
             switch (orderStatus) {

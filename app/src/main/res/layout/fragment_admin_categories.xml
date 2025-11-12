@@ -48,14 +48,21 @@
             android:contentDescription="Thêm danh mục" />
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_admin_categories"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshCategories"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="64dp"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
-        android:paddingBottom="70dp"
-        android:clipToPadding="false" />
+        android:layout_marginTop="64dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_admin_categories"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingBottom="70dp"
+            android:clipToPadding="false" />
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

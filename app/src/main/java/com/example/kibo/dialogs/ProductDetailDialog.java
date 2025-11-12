@@ -155,23 +155,17 @@ public class ProductDetailDialog extends DialogFragment {
 
     private void loadProductData() {
         ApiService apiService = ApiClient.getApiService();
-        
-        // Load thông tin sản phẩm
-        apiService.getProductById(productId).enqueue(new Callback<ProductResponse>() {
+
+        // Load thông tin sản phẩm bằng endpoint mới Products/{id}
+        apiService.getProductDetail(productId).enqueue(new Callback<Product>() {
             @Override
-            public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
-                    List<Product> products = response.body().getData();
-                    if (!products.isEmpty()) {
-                        product = products.get(0);
-                        populateViews();
-                        
-                        // Load ảnh sản phẩm
-                        loadProductImages();
-                    } else {
-                        Toast.makeText(getContext(), "Không tìm thấy sản phẩm", Toast.LENGTH_SHORT).show();
-                        dismiss();
-                    }
+            public void onResponse(Call<Product> call, Response<Product> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    product = response.body();
+                    populateViews();
+
+                    // Load ảnh sản phẩm
+                    loadProductImages();
                 } else {
                     Toast.makeText(getContext(), "Lỗi khi tải thông tin sản phẩm", Toast.LENGTH_SHORT).show();
                     dismiss();
@@ -179,7 +173,7 @@ public class ProductDetailDialog extends DialogFragment {
             }
 
             @Override
-            public void onFailure(Call<ProductResponse> call, Throwable t) {
+            public void onFailure(Call<Product> call, Throwable t) {
                 Toast.makeText(getContext(), "Lỗi mạng khi tải thông tin sản phẩm", Toast.LENGTH_SHORT).show();
                 dismiss();
             }

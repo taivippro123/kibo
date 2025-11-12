@@ -15,6 +15,9 @@ import com.example.kibo.models.OrderDetail;
 import com.example.kibo.models.OrderDetailsResponse;
 import com.example.kibo.models.Product;
 import com.example.kibo.models.ProductResponse;
+import com.example.kibo.models.ProductImage;
+import com.example.kibo.models.CartItem;
+import com.example.kibo.models.CartItemsResponse;
 import com.bumptech.glide.Glide;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -42,6 +45,7 @@ public class OrderDetailFragement extends Fragment {
     private TextView tvCustomerLabel;
     private TextView tvCustomerName;
     private LinearLayout timelineContainer;
+    private LinearLayout productsContainer; // dynamic list of purchased items
     private TextView tvStage1, tvStage2, tvStage3;
     private android.widget.ImageView checkStage1, checkStage2, checkStage3;
 
@@ -84,6 +88,37 @@ public class OrderDetailFragement extends Fragment {
         tvCustomerLabel = root.findViewById(R.id.tv_customer_label);
         tvCustomerName = root.findViewById(R.id.tv_customer_name);
         timelineContainer = root.findViewById(R.id.timeline_container);
+        // Find the Product Details CardView parent (should be LinearLayout inside NestedScrollView)
+        View currentView = imgProduct;
+        androidx.cardview.widget.CardView productCardView = null;
+        LinearLayout contentLinearLayout = null;
+        
+        // Climb up to find CardView containing imgProduct
+        while (currentView != null && currentView.getParent() instanceof View) {
+            View parent = (View) currentView.getParent();
+            if (parent instanceof androidx.cardview.widget.CardView) {
+                productCardView = (androidx.cardview.widget.CardView) parent;
+                break;
+            }
+            currentView = parent;
+        }
+        
+        // Find the LinearLayout that contains all CardViews (content container)
+        if (productCardView != null && productCardView.getParent() instanceof LinearLayout) {
+            contentLinearLayout = (LinearLayout) productCardView.getParent();
+            
+            // Create productsContainer and insert right after Product Details CardView
+            productsContainer = new LinearLayout(getContext());
+            productsContainer.setOrientation(LinearLayout.VERTICAL);
+            int pad = (int) (8 * getResources().getDisplayMetrics().density);
+            productsContainer.setPadding(pad, pad, pad, pad);
+            
+            int cardIndex = contentLinearLayout.indexOfChild(productCardView);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = pad;
+            productsContainer.setLayoutParams(lp);
+            contentLinearLayout.addView(productsContainer, cardIndex + 1);
+        }
         tvStage1 = root.findViewById(R.id.tv_stage1);
         tvStage2 = root.findViewById(R.id.tv_stage2);
         tvStage3 = root.findViewById(R.id.tv_stage3);
@@ -169,46 +204,37 @@ public class OrderDetailFragement extends Fragment {
         tvOrderCode.setText(order.getOrderCode());
         tvOrderStatus.setText(getStatusText(order.getOrderStatus()));
 
-        // Load order details (products in this order)
+        // Load cart items to get accurate product data (use cartId from order)
         ApiService api = ApiClient.getApiService();
-        api.getOrderDetails(order.getOrderId()).enqueue(new retrofit2.Callback<OrderDetailsResponse>() {
-            @Override
-            public void onResponse(retrofit2.Call<OrderDetailsResponse> call, retrofit2.Response<OrderDetailsResponse> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
-                    OrderDetail orderDetail = response.body().getData().get(0);
+        int cartId = order.getCartId();
+        if (cartId > 0) {
+            api.getCartItems(cartId).enqueue(new retrofit2.Callback<CartItemsResponse>() {
+                @Override
+                public void onResponse(retrofit2.Call<CartItemsResponse> call, retrofit2.Response<CartItemsResponse> response) {
+                    if (!isAdded()) return;
                     
-                    // Display quantity
-                    tvQuantity.setText("x" + orderDetail.getQuantity());
-
-                    // Load product details
-                    api.getProductById(orderDetail.getProductId()).enqueue(new retrofit2.Callback<ProductResponse>() {
-                        @Override
-                        public void onResponse(retrofit2.Call<ProductResponse> call2, retrofit2.Response<ProductResponse> resp2) {
-                            if (resp2.isSuccessful() && resp2.body() != null && resp2.body().getData() != null && !resp2.body().getData().isEmpty()) {
-                                Product product = resp2.body().getData().get(0);
-                                
-                                // Display product details
-                                tvProductName.setText(product.getProductName());
-                                tvPrice.setText(String.format("%,.0fđ", product.getPrice()));
-                                Glide.with(imgProduct.getContext())
-                                    .load(product.getImageUrl())
-                                    .into(imgProduct);
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(retrofit2.Call<ProductResponse> call2, Throwable t) {
-                            // Handle error silently
-                        }
-                    });
+                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
+                        java.util.List<CartItem> cartItems = response.body().getData();
+                        
+                        // Display all products in the order
+                        displayAllProducts(cartItems);
+                    } else {
+                        // Fallback: try to load from order details
+                        loadOrderDetailsFallback();
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(retrofit2.Call<OrderDetailsResponse> call, Throwable t) {
-                // Handle error silently
-            }
-        });
+                @Override
+                public void onFailure(retrofit2.Call<CartItemsResponse> call, Throwable t) {
+                    if (!isAdded()) return;
+                    // Fallback: try to load from order details
+                    loadOrderDetailsFallback();
+                }
+            });
+        } else {
+            // Fallback if no cartId
+            loadOrderDetailsFallback();
+        }
 
         // Load payment details if payment ID exists
         Integer paymentId = order.getPaymentId();
@@ -220,6 +246,7 @@ public class OrderDetailFragement extends Fragment {
                         com.example.kibo.models.Payment payment = response.body().get(0);
                         int method = payment.getPaymentMethod();
                         int status = payment.getPaymentStatus();
+                        double amount = payment.getAmount();
 
                         // Display payment method
                         String methodText = getPaymentMethodText(method);
@@ -232,6 +259,9 @@ public class OrderDetailFragement extends Fragment {
                         // Set color based on status
                         int colorResId = status == 1 ? R.color.green : R.color.red_dark;
                         tvPaymentStatus.setTextColor(getResources().getColor(colorResId, null));
+
+                        // Show total amount for this order
+                        tvPrice.setText(String.format("%,.0fđ", amount));
                     }
                 }
 
@@ -266,6 +296,192 @@ public class OrderDetailFragement extends Fragment {
                 });
             } catch (Exception ignored) { }
         }
+    }
+
+    private void displayAllProducts(java.util.List<CartItem> cartItems) {
+        if (cartItems == null || cartItems.isEmpty()) {
+            return;
+        }
+        // Always display first item in the legacy card (already on screen)
+        CartItem firstItem = cartItems.get(0);
+        displaySingleProduct(firstItem);
+
+        // Render all remaining items into the productsContainer with identical layout to legacy card
+        if (productsContainer != null) {
+            productsContainer.removeAllViews();
+            for (int i = 1; i < cartItems.size(); i++) { // start from second item to avoid duplicate legacy card
+                CartItem item = cartItems.get(i);
+                View cardView = createProductCard(item);
+                productsContainer.addView(cardView);
+            }
+        }
+    }
+    
+    private View createProductCard(CartItem item) {
+        // Create CardView matching the legacy Product Details CardView exactly
+        androidx.cardview.widget.CardView cardView = new androidx.cardview.widget.CardView(getContext());
+        cardView.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        int marginBottom = (int) (16 * getResources().getDisplayMetrics().density);
+        ((LinearLayout.LayoutParams) cardView.getLayoutParams()).bottomMargin = marginBottom;
+        cardView.setRadius(12 * getResources().getDisplayMetrics().density);
+        cardView.setCardElevation(2 * getResources().getDisplayMetrics().density);
+        
+        // Create horizontal LinearLayout (same as legacy)
+        LinearLayout horizontalLayout = new LinearLayout(getContext());
+        horizontalLayout.setOrientation(LinearLayout.HORIZONTAL);
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        horizontalLayout.setPadding(padding, padding, padding, padding);
+        cardView.addView(horizontalLayout);
+        
+        // Create ImageView (100dp x 100dp, same as legacy)
+        ImageView imageView = new ImageView(getContext());
+        int imageSize = (int) (100 * getResources().getDisplayMetrics().density);
+        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(imageSize, imageSize);
+        imageView.setLayoutParams(imageParams);
+        imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        imageView.setImageResource(R.drawable.placeholder);
+        horizontalLayout.addView(imageView);
+        
+        // Create vertical LinearLayout for product info (same as legacy)
+        LinearLayout verticalLayout = new LinearLayout(getContext());
+        verticalLayout.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams verticalParams = new LinearLayout.LayoutParams(
+            0,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            1.0f
+        );
+        int marginStart = (int) (16 * getResources().getDisplayMetrics().density);
+        verticalParams.setMarginStart(marginStart);
+        verticalLayout.setLayoutParams(verticalParams);
+        horizontalLayout.addView(verticalLayout);
+        
+        // Product Name TextView (16sp, bold, black - same as legacy)
+        TextView tvName = new TextView(getContext());
+        tvName.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        tvName.setText(item.getProductName());
+        tvName.setTextColor(getResources().getColor(R.color.black, null));
+        tvName.setTextSize(16);
+        tvName.setTypeface(null, android.graphics.Typeface.BOLD);
+        verticalLayout.addView(tvName);
+        
+        // Price TextView (16sp, bold, red_dark - same as legacy)
+        TextView tvPrice = new TextView(getContext());
+        LinearLayout.LayoutParams priceParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        int marginTop = (int) (8 * getResources().getDisplayMetrics().density);
+        priceParams.topMargin = marginTop;
+        tvPrice.setLayoutParams(priceParams);
+        tvPrice.setText(String.format("%,.0fđ", item.getPrice()));
+        tvPrice.setTextColor(getResources().getColor(R.color.red_dark, null));
+        tvPrice.setTextSize(16);
+        tvPrice.setTypeface(null, android.graphics.Typeface.BOLD);
+        verticalLayout.addView(tvPrice);
+        
+        // Quantity TextView (14sp, gray_dark, below price - same as legacy)
+        TextView tvQuantity = new TextView(getContext());
+        LinearLayout.LayoutParams qtyParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        int marginTopQty = (int) (4 * getResources().getDisplayMetrics().density);
+        qtyParams.topMargin = marginTopQty;
+        tvQuantity.setLayoutParams(qtyParams);
+        tvQuantity.setText("x" + item.getQuantity());
+        tvQuantity.setTextColor(getResources().getColor(R.color.gray_dark, null));
+        tvQuantity.setTextSize(14);
+        verticalLayout.addView(tvQuantity);
+        
+        // Load image
+        if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+            Glide.with(imageView.getContext()).load(item.getImageUrl()).into(imageView);
+        } else {
+            loadProductImage(item.getProductId(), imageView);
+        }
+        
+        return cardView;
+    }
+    
+    private void displaySingleProduct(CartItem item) {
+        tvProductName.setText(item.getProductName());
+        tvPrice.setText(String.format("%,.0fđ", item.getPrice()));
+        tvQuantity.setText("x" + item.getQuantity());
+        
+        // Load image
+        if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+            Glide.with(imgProduct.getContext()).load(item.getImageUrl()).into(imgProduct);
+        } else {
+            loadProductImage(item.getProductId(), imgProduct);
+        }
+    }
+    
+    private void loadProductImage(int productId, ImageView imageView) {
+        ApiService api = ApiClient.getApiService();
+        api.getProductImages(productId).enqueue(new retrofit2.Callback<java.util.List<ProductImage>>() {
+            @Override
+            public void onResponse(retrofit2.Call<java.util.List<ProductImage>> call, retrofit2.Response<java.util.List<ProductImage>> response) {
+                if (!isAdded()) return;
+                if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                    java.util.List<ProductImage> images = response.body();
+                    String chosenUrl = null;
+                    for (ProductImage img : images) {
+                        if (img.isPrimary()) { chosenUrl = img.getImageUrl(); break; }
+                    }
+                    if (chosenUrl == null) chosenUrl = images.get(0).getImageUrl();
+                    Glide.with(imageView.getContext()).load(chosenUrl).into(imageView);
+                }
+            }
+            @Override
+            public void onFailure(retrofit2.Call<java.util.List<ProductImage>> call, Throwable t) { }
+        });
+    }
+    
+    private void loadOrderDetailsFallback() {
+        // Fallback: load from order details API
+        ApiService api = ApiClient.getApiService();
+        api.getOrderDetails(order.getOrderId()).enqueue(new retrofit2.Callback<OrderDetailsResponse>() {
+            @Override
+            public void onResponse(retrofit2.Call<OrderDetailsResponse> call, retrofit2.Response<OrderDetailsResponse> response) {
+                if (!isAdded()) return;
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
+                    OrderDetail orderDetail = response.body().getData().get(0);
+                    tvQuantity.setText("x" + orderDetail.getQuantity());
+
+                    // Load product details
+                    api.getProductById(orderDetail.getProductId()).enqueue(new retrofit2.Callback<ProductResponse>() {
+                        @Override
+                        public void onResponse(retrofit2.Call<ProductResponse> call2, retrofit2.Response<ProductResponse> resp2) {
+                            if (!isAdded()) return;
+                            if (resp2.isSuccessful() && resp2.body() != null && resp2.body().getData() != null && !resp2.body().getData().isEmpty()) {
+                                Product product = resp2.body().getData().get(0);
+                                tvProductName.setText(product.getProductName());
+                                tvPrice.setText(String.format("%,.0fđ", product.getPrice()));
+                                Glide.with(imgProduct.getContext())
+                                    .load(product.getImageUrl())
+                                    .into(imgProduct);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(retrofit2.Call<ProductResponse> call2, Throwable t) {
+                            // Handle error silently
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<OrderDetailsResponse> call, Throwable t) {
+                // Handle error silently
+            }
+        });
     }
 
     private String getStatusText(int orderStatus) {

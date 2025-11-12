@@ -34,6 +34,7 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import com.example.kibo.ui.FilterBottomSheet;
 
 public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
@@ -90,6 +91,14 @@ public class HomeFragment extends Fragment {
             Intent intent = new Intent(requireContext(), NotificationActivity.class);
             startActivity(intent);
         });
+
+        ImageButton btnFilter = root.findViewById(R.id.btn_filter);
+        btnFilter.setOnClickListener(v -> {
+            FilterBottomSheet sheet = new FilterBottomSheet();
+            sheet.setOnFilterAppliedListener(filtered -> productAdapter.updateProducts(filtered));
+            sheet.show(getParentFragmentManager(), "filter");
+        });
+
 
         // Load products from API
         loadProducts();
@@ -332,4 +341,5 @@ public class HomeFragment extends Fragment {
             image = itemView.findViewById(R.id.img_banner);
         }
     }
+
 }
