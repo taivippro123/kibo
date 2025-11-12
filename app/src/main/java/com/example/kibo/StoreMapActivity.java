@@ -31,6 +31,11 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.Polyline;
 
+import com.example.kibo.api.ApiClient;
+import com.example.kibo.api.ApiService;
+import com.example.kibo.models.StoreLocation;
+import com.example.kibo.models.StoreLocationsResponse;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -40,6 +45,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -52,14 +61,15 @@ public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCal
     // Google Maps API Key - only for map display
     private static final String GOOGLE_API_KEY = "AIzaSyDmWSNu6hMOQAR5zovTt7meDWECV1uE6aU";
 
-    // Store coordinates (FPT University HCM)
-    private static final double STORE_LATITUDE = 10.8411276;
-    private static final double STORE_LONGITUDE = 106.809883;
-    private static final String STORE_NAME = "Kibo Store";
-    private static final String STORE_ADDRESS = "FPT University, Thủ Đức, TP.HCM";
+    // Store coordinates - will be loaded from API
+    private double storeLatitude;
+    private double storeLongitude;
+    private String storeName = "Kibo Store";
+    private String storeAddress = "Đang tải...";
 
     private GoogleMap googleMap;
     private FusedLocationProviderClient fusedLocationClient;
+    private ApiService apiService;
     private TextView tvDistance;
     private TextView tvDuration;
     private ProgressBar progressBar;
@@ -79,13 +89,76 @@ public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCal
 
         handler = new Handler(Looper.getMainLooper());
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        apiService = ApiClient.getApiServiceWithAuth(this);
 
         // Show loading
         if (progressBar != null) {
             progressBar.setVisibility(View.VISIBLE);
         }
 
-        // Load map directly - no need for extra thread
+        // Load store location from API first
+        loadStoreLocation();
+    }
+
+    private void setupToolbar() {
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Vị trí cửa hàng");
+        }
+        toolbar.setNavigationOnClickListener(v -> finish());
+    }
+
+    private void loadStoreLocation() {
+        Call<StoreLocationsResponse> call = apiService.getStoreLocations(1, 1);
+        call.enqueue(new Callback<StoreLocationsResponse>() {
+            @Override
+            public void onResponse(Call<StoreLocationsResponse> call, Response<StoreLocationsResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    StoreLocationsResponse storeResponse = response.body();
+                    List<StoreLocation> locations = storeResponse.getData();
+
+                    if (locations != null && !locations.isEmpty()) {
+                        StoreLocation store = locations.get(0);
+                        storeLatitude = store.getLatitude();
+                        storeLongitude = store.getLongitude();
+                        storeAddress = store.getAddress() != null ? store.getAddress() : "Cửa hàng Kibo";
+
+                        Log.d(TAG, "Store location loaded: " + storeLatitude + ", " + storeLongitude);
+
+                        // Now load the map
+                        loadMap();
+                    } else {
+                        Log.e(TAG, "No store locations found");
+                        Toast.makeText(StoreMapActivity.this, "Không tìm thấy thông tin cửa hàng", Toast.LENGTH_SHORT)
+                                .show();
+                        if (progressBar != null) {
+                            progressBar.setVisibility(View.GONE);
+                        }
+                    }
+                } else {
+                    Log.e(TAG, "Failed to load store locations: " + response.code());
+                    Toast.makeText(StoreMapActivity.this, "Không thể tải thông tin cửa hàng", Toast.LENGTH_SHORT)
+                            .show();
+                    if (progressBar != null) {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<StoreLocationsResponse> call, Throwable t) {
+                Log.e(TAG, "Error loading store locations", t);
+                Toast.makeText(StoreMapActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                if (progressBar != null) {
+                    progressBar.setVisibility(View.GONE);
+                }
+            }
+        });
+    }
+
+    private void loadMap() {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         if (mapFragment != null) {
@@ -99,16 +172,6 @@ public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
-    private void setupToolbar() {
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Vị trí cửa hàng");
-        }
-        toolbar.setNavigationOnClickListener(v -> finish());
-    }
-
     @Override
     public void onMapReady(@NonNull GoogleMap map) {
         try {
@@ -120,12 +183,12 @@ public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCal
             googleMap.getUiSettings().setCompassEnabled(true);
             googleMap.getUiSettings().setMyLocationButtonEnabled(true); // Enable My Location button
 
-            // Add store marker
-            LatLng storeLocation = new LatLng(STORE_LATITUDE, STORE_LONGITUDE);
+            // Add store marker with data from API
+            LatLng storeLocation = new LatLng(storeLatitude, storeLongitude);
             googleMap.addMarker(new MarkerOptions()
                     .position(storeLocation)
-                    .title(STORE_NAME)
-                    .snippet(STORE_ADDRESS)
+                    .title(storeName)
+                    .snippet(storeAddress)
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
 
             googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(storeLocation, 15));
@@ -181,7 +244,7 @@ public class StoreMapActivity extends AppCompatActivity implements OnMapReadyCal
                                         "Location found: " + location.getLatitude() + ", " + location.getLongitude());
 
                                 LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                                LatLng storeLatLng = new LatLng(STORE_LATITUDE, STORE_LONGITUDE);
+                                LatLng storeLatLng = new LatLng(storeLatitude, storeLongitude);
 
                                 if (googleMap != null) {
                                     // Add marker for current location
