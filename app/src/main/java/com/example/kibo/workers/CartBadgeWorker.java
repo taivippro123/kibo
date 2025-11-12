@@ -27,8 +27,8 @@ public class CartBadgeWorker extends Worker {
         try {
             SessionManager sessionManager = new SessionManager(ctx);
             if (!sessionManager.isLoggedIn() || !sessionManager.hasActiveCart()) {
-                // Ensure notification shows zero to clear badge if desired
-                NotificationHelper.showCartNotification(ctx, 0);
+                // Clear badge when no cart
+                NotificationHelper.updateCartBadge(ctx, 0);
                 return Result.success();
             }
 
@@ -39,9 +39,9 @@ public class CartBadgeWorker extends Worker {
             Response<CartItemsResponse> response = apiService.getCartItems(cartId).execute();
             if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
                 int count = response.body().getData().size();
-                NotificationHelper.showCartNotification(ctx, count);
+                NotificationHelper.updateCartBadge(ctx, count);
             } else {
-                NotificationHelper.showCartNotification(ctx, 0);
+                NotificationHelper.updateCartBadge(ctx, 0);
             }
 
             return Result.success();

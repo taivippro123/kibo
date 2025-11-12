@@ -136,6 +136,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh badge every time user returns to MainActivity
+        refreshCartBadge();
+    }
+
     private void loadFragment(Fragment fragment) {
         getSupportFragmentManager()
                 .beginTransaction()
@@ -163,19 +170,8 @@ public class MainActivity extends AppCompatActivity {
             badge.setMaxCharacterCount(3);
         }
 
-        // Also update app icon badge when updating bottom nav badge
-        try {
-            me.leolin.shortcutbadger.ShortcutBadger.applyCount(this, count);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // Update notification to reflect badge on app icon
-        if (count > 0) {
-            NotificationHelper.showCartNotification(this, count);
-        } else {
-            NotificationHelper.clearCartNotification(this);
-        }
+        // Update app icon badge (no notification, just badge)
+        NotificationHelper.updateCartBadge(this, count);
     }
 
     public void refreshCartBadge() {
@@ -210,9 +206,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(android.content.Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        
+        android.util.Log.d("MainActivity", "onNewIntent called - refreshing badge");
+        
+        // Refresh badge when coming back from other activities
+        refreshCartBadge();
+        
         if (intent == null || bottomNav == null)
             return;
         int selectedTab = intent.getIntExtra("selected_tab", -1);
+        android.util.Log.d("MainActivity", "selected_tab from intent: " + selectedTab);
         if (selectedTab == -1)
             return;
 
