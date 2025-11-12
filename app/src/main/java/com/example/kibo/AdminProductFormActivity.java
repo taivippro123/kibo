@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import okhttp3.MediaType;
@@ -95,7 +97,6 @@ public class AdminProductFormActivity extends AppCompatActivity {
     }
 
     private void loadProductData() {
-        // TODO: Load dữ liệu sản phẩm từ API
         if (productId == -1) {
             Toast.makeText(this, "Không tìm thấy ID sản phẩm", Toast.LENGTH_SHORT).show();
             finish();
@@ -106,18 +107,12 @@ public class AdminProductFormActivity extends AppCompatActivity {
         Toast.makeText(this, "Đang tải thông tin sản phẩm...", Toast.LENGTH_SHORT).show();
 
         ApiService apiService = ApiClient.getApiService();
-        apiService.getProductById(productId).enqueue(new Callback<ProductResponse>() {
+        apiService.getProductDetail(productId).enqueue(new Callback<Product>() {
             @Override
-            public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
-                    List<Product> products = response.body().getData();
-                    if (!products.isEmpty()) {
-                        Product product = products.get(0);
-                        populateFormWithProductData(product);
-                    } else {
-                        Toast.makeText(AdminProductFormActivity.this, "Không tìm thấy sản phẩm", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
+            public void onResponse(Call<Product> call, Response<Product> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Product product = response.body();
+                    populateFormWithProductData(product);
                 } else {
                     Toast.makeText(AdminProductFormActivity.this, "Lỗi khi tải thông tin sản phẩm", Toast.LENGTH_SHORT).show();
                     finish();
@@ -125,7 +120,7 @@ public class AdminProductFormActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<ProductResponse> call, Throwable t) {
+            public void onFailure(Call<Product> call, Throwable t) {
                 Toast.makeText(AdminProductFormActivity.this, "Lỗi mạng khi tải thông tin sản phẩm", Toast.LENGTH_SHORT).show();
                 finish();
             }
@@ -384,6 +379,8 @@ public class AdminProductFormActivity extends AppCompatActivity {
                                     progressDialog.dismiss();
                                     if (response.isSuccessful()) {
                                         Toast.makeText(AdminProductFormActivity.this, "Tạo sản phẩm thành công", Toast.LENGTH_SHORT).show();
+                                        // Set result để thông báo cho fragment biết cần refresh
+                                        setResult(android.app.Activity.RESULT_OK);
                                         finish();
                                     } else {
                                         Toast.makeText(AdminProductFormActivity.this, "Tạo sản phẩm thất bại", Toast.LENGTH_SHORT).show();
@@ -423,14 +420,21 @@ public class AdminProductFormActivity extends AppCompatActivity {
             
             // Xử lý ảnh song song với ExecutorService
             java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(8);
-            java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(selectedImageUris.size());
             
+            // Tính tổng số ảnh cần xử lý: ảnh mới + ảnh cũ (nếu có)
+            int newImageCount = selectedImageUris.size();
+            int oldImageCount = (currentProductImages != null && !currentProductImages.isEmpty()) ? currentProductImages.size() : 0;
+            int totalImages = newImageCount + oldImageCount;
+            
+            java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(totalImages);
+            
+            // Xử lý ảnh mới (nếu có)
             for (int i = 0; i < selectedImageUris.size(); i++) {
                 final int index = i;
                 executor.submit(() -> {
                     try {
                         java.io.InputStream is = getContentResolver().openInputStream(selectedImageUris.get(index));
-                        byte[] bytes = is.readAllBytes(); // ← Chỉ thay đổi chỗ này
+                        byte[] bytes = is.readAllBytes();
                         is.close();
                         
                         okhttp3.RequestBody rb = okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/*"), bytes);
@@ -440,11 +444,42 @@ public class AdminProductFormActivity extends AppCompatActivity {
                             imageFiles.add(part);
                         }
                     } catch (Exception e) {
-                        // ignore error
+                        e.printStackTrace();
                     } finally {
                         latch.countDown();
                     }
                 });
+            }
+            
+            // Xử lý ảnh cũ (nếu có) - gửi kèm cả khi có ảnh mới
+            if (currentProductImages != null && !currentProductImages.isEmpty()) {
+                for (int i = 0; i < currentProductImages.size(); i++) {
+                    final int index = i;
+                    final ProductImage productImage = currentProductImages.get(index);
+                    executor.submit(() -> {
+                        try {
+                            // Download ảnh từ URL
+                            URL url = new URL(productImage.getImageUrl());
+                            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                            connection.setDoInput(true);
+                            connection.connect();
+                            java.io.InputStream input = connection.getInputStream();
+                            byte[] bytes = input.readAllBytes();
+                            input.close();
+                            
+                            okhttp3.RequestBody rb = okhttp3.RequestBody.create(okhttp3.MediaType.parse("image/*"), bytes);
+                            MultipartBody.Part part = MultipartBody.Part.createFormData("ImageFiles", "existing_image_" + index + ".jpg", rb);
+                            
+                            synchronized (imageFiles) {
+                                imageFiles.add(part);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        } finally {
+                            latch.countDown();
+                        }
+                    });
+                }
             }
             
             try {
@@ -454,6 +489,7 @@ public class AdminProductFormActivity extends AppCompatActivity {
                 
                 // Chạy API call trên main thread
                 runOnUiThread(() -> {
+                    // Nếu không có ảnh mới và không có ảnh cũ, báo lỗi
                     if (imageFiles.isEmpty()) {
                         progressDialog.dismiss();
                         Toast.makeText(AdminProductFormActivity.this, "Vui lòng chọn ít nhất 1 ảnh để cập nhật", Toast.LENGTH_SHORT).show();
@@ -491,6 +527,8 @@ public class AdminProductFormActivity extends AppCompatActivity {
                                     progressDialog.dismiss();
                                     if (response.isSuccessful()) {
                                         Toast.makeText(AdminProductFormActivity.this, "Cập nhật sản phẩm thành công", Toast.LENGTH_SHORT).show();
+                                        // Set result để thông báo cho fragment biết cần refresh
+                                        setResult(android.app.Activity.RESULT_OK);
                                         finish();
                                     } else {
                                         Toast.makeText(AdminProductFormActivity.this, "Cập nhật thất bại", Toast.LENGTH_SHORT).show();
