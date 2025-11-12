@@ -99,14 +99,14 @@ public class AdminProductsFragment extends Fragment {
 
     private void openProductForm() {
         Intent intent = new Intent(getContext(), AdminProductFormActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, 1001); // Request code 1001 for create
     }
 
     private void onEditClick(Product product) {
         Intent intent = new Intent(getContext(), AdminProductFormActivity.class);
         intent.putExtra("product_id", product.getProductId());
         intent.putExtra("is_edit", true);
-        startActivity(intent);
+        startActivityForResult(intent, 1002); // Request code 1002 for update
     }
 
     private void onDeleteClick(Product product) {
@@ -307,6 +307,18 @@ public class AdminProductsFragment extends Fragment {
         super.onResume();
         // Không tự động reload trong onResume để tránh crash
         // Chỉ reload khi thực sự cần thiết (ví dụ: sau khi quay lại từ form)
+    }
+    
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // Nếu create hoặc update thành công, refresh danh sách sản phẩm
+        if ((requestCode == 1001 || requestCode == 1002) && resultCode == android.app.Activity.RESULT_OK) {
+            // Refresh danh sách sản phẩm sau khi create/update thành công
+            if (getContext() != null && isAdded()) {
+                refreshProducts();
+            }
+        }
     }
     
     @Override
