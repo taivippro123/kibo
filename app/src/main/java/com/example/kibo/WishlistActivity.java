@@ -42,10 +42,14 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
     // UI components
     private EditText edtSearch;
     private LinearLayout tabsContainer;
-    private ImageView btnFilter, btnPrice;
+    private TextView btnPriceAll, btnPriceUnder1M, btnPrice1M2M, btnPriceOver2M;
+    private List<TextView> priceTabs = new ArrayList<>();
 
     private String currentCategory = "ALL"; // Changed to show all products by default
     private List<TextView> categoryTabs = new ArrayList<>();
+
+    // Price filter state: 0 = all, 1 = under 1M, 2 = 1M-2M, 3 = over 2M
+    private int priceFilterState = 0;
 
     // API and Session
     private ApiService apiService;
@@ -71,8 +75,18 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
         recyclerWishlist = findViewById(R.id.recycler_wishlist);
         edtSearch = findViewById(R.id.edt_search);
         tabsContainer = findViewById(R.id.tabs_container);
-        btnFilter = findViewById(R.id.btn_filter);
-        btnPrice = findViewById(R.id.btn_price);
+
+        // Initialize price filter buttons
+        btnPriceAll = findViewById(R.id.btn_price_all);
+        btnPriceUnder1M = findViewById(R.id.btn_price_under_1m);
+        btnPrice1M2M = findViewById(R.id.btn_price_1m_2m);
+        btnPriceOver2M = findViewById(R.id.btn_price_over_2m);
+
+        // Add to price tabs list
+        priceTabs.add(btnPriceAll);
+        priceTabs.add(btnPriceUnder1M);
+        priceTabs.add(btnPrice1M2M);
+        priceTabs.add(btnPriceOver2M);
 
         // Setup search functionality
         edtSearch.addTextChangedListener(new TextWatcher() {
@@ -185,8 +199,64 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
     }
 
     private void setupFilterButtons() {
-        btnFilter.setOnClickListener(v -> showFilterDialog());
-        btnPrice.setOnClickListener(v -> showPriceFilter());
+        btnPriceAll.setOnClickListener(v -> selectPriceFilter(0, btnPriceAll));
+        btnPriceUnder1M.setOnClickListener(v -> selectPriceFilter(1, btnPriceUnder1M));
+        btnPrice1M2M.setOnClickListener(v -> selectPriceFilter(2, btnPrice1M2M));
+        btnPriceOver2M.setOnClickListener(v -> selectPriceFilter(3, btnPriceOver2M));
+    }
+
+    private void selectPriceFilter(int filterState, TextView selectedTab) {
+        priceFilterState = filterState;
+
+        // Reset all price tabs
+        for (TextView tab : priceTabs) {
+            tab.setTextColor(getResources().getColor(R.color.gray_medium));
+            tab.setBackground(null);
+        }
+
+        // Set selected tab style
+        selectedTab.setTextColor(getResources().getColor(android.R.color.white));
+        selectedTab.setBackground(getResources().getDrawable(R.drawable.bg_tab_selected));
+
+        // Re-apply current filter with new price range
+        String currentQuery = edtSearch.getText().toString();
+        if (currentQuery.isEmpty()) {
+            filterByCategory();
+        } else {
+            filterProducts(currentQuery);
+        }
+    }
+
+    private void filterByPriceRange(List<Product> products) {
+        if (priceFilterState == 0) {
+            return; // Show all
+        }
+
+        List<Product> filtered = new ArrayList<>();
+        for (Product product : products) {
+            double price = product.getPrice();
+
+            switch (priceFilterState) {
+                case 1: // Under 1M
+                    if (price < 1000000) {
+                        filtered.add(product);
+                    }
+                    break;
+                case 2: // 1M-2M
+                    if (price >= 1000000 && price <= 2000000) {
+                        filtered.add(product);
+                    }
+                    break;
+                case 3: // Over 2M
+                    if (price > 2000000) {
+                        filtered.add(product);
+                    }
+                    break;
+            }
+        }
+
+        products.clear();
+        products.addAll(filtered);
     }
 
     private void selectTab(String category, TextView selectedTab) {
@@ -309,6 +379,9 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
             }
         }
 
+        // Apply price range filter
+        filterByPriceRange(filteredWishlistItems);
+
         wishlistAdapter.notifyDataSetChanged();
     }
 
@@ -326,16 +399,11 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
                     filteredWishlistItems.add(product);
                 }
             }
+
+            // Apply price range filter
+            filterByPriceRange(filteredWishlistItems);
         }
         wishlistAdapter.notifyDataSetChanged();
-    }
-
-    private void showFilterDialog() {
-        Toast.makeText(this, "Filter dialog - Coming soon", Toast.LENGTH_SHORT).show();
-    }
-
-    private void showPriceFilter() {
-        Toast.makeText(this, "Price filter - Coming soon", Toast.LENGTH_SHORT).show();
     }
 
     @Override
