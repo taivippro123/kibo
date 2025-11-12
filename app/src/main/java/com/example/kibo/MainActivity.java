@@ -109,7 +109,8 @@ public class MainActivity extends AppCompatActivity {
 
     /** Cập nhật badge giỏ hàng */
     public void updateCartBadge(int count) {
-        if (bottomNav == null) return;
+        if (bottomNav == null)
+            return;
 
         bottomNav.removeBadge(R.id.nav_cart);
 
@@ -223,12 +224,34 @@ public class MainActivity extends AppCompatActivity {
         bottomNav.setSelectedItemId(id);
     }
 
+    /** Xử lý sự kiện chọn bottom navigation */
+    private boolean onBottomNavSelected(@NonNull MenuItem item) {
+        Fragment selectedFragment = null;
+        int itemId = item.getItemId();
+
+        if (itemId == R.id.nav_home) {
+            selectedFragment = homeFragment;
+        } else if (itemId == R.id.nav_orders) {
+            selectedFragment = ordersFragment;
+        } else if (itemId == R.id.nav_cart) {
+            selectedFragment = cartFragment;
+        } else if (itemId == R.id.nav_account) {
+            selectedFragment = accountFragment;
+        }
+
+        if (selectedFragment != null) {
+            loadFragment(selectedFragment);
+            return true;
+        }
+        return false;
+    }
 
     /** Lên lịch chạy Worker để cập nhật badge nền */
     private void scheduleCartBadgeWorker() {
         try {
             // chạy ngay 1 lần đầu tiên sau 3s
-            OneTimeWorkRequest initialWork = new OneTimeWorkRequest.Builder(com.example.kibo.workers.CartBadgeWorker.class)
+            OneTimeWorkRequest initialWork = new OneTimeWorkRequest.Builder(
+                    com.example.kibo.workers.CartBadgeWorker.class)
                     .setInitialDelay(3, TimeUnit.SECONDS)
                     .build();
             WorkManager.getInstance(this).enqueue(initialWork);
