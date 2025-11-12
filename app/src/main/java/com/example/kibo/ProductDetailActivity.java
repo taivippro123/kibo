@@ -536,7 +536,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                         // Update badge via NotificationHelper
                         com.example.kibo.notifications.NotificationHelper.updateCartBadge(
                                 ProductDetailActivity.this, count);
-                        
+
                         // Wait 500ms to ensure badge is fully updated before navigating
                         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
                             @Override

@@ -206,12 +206,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(android.content.Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        
+
         android.util.Log.d("MainActivity", "onNewIntent called - refreshing badge");
-        
+
         // Refresh badge when coming back from other activities
         refreshCartBadge();
-        
+
         if (intent == null || bottomNav == null)
             return;
         int selectedTab = intent.getIntExtra("selected_tab", -1);

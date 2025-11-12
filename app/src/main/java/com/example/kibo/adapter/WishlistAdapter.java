@@ -1,7 +1,6 @@
 package com.example.kibo.adapter;
 
 import android.content.Context;
-import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,9 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.kibo.R;
 import com.example.kibo.models.Product;
-import java.text.NumberFormat;
 import java.util.List;
-import java.util.Locale;
 
 public class WishlistAdapter extends RecyclerView.Adapter<WishlistAdapter.WishlistViewHolder> {
     private List<Product> wishlistItems;
@@ -55,25 +52,6 @@ public class WishlistAdapter extends RecyclerView.Adapter<WishlistAdapter.Wishli
 
         // Format and set current price using built-in formatter
         holder.tvCurrentPrice.setText(product.getFormattedPrice());
-
-        // For demo, show original price as 6% more than current price
-        double originalPrice = product.getPrice() * 1.06;
-        if (originalPrice > product.getPrice()) {
-            holder.tvOriginalPrice.setVisibility(View.VISIBLE);
-            holder.tvDiscount.setVisibility(View.VISIBLE);
-
-            NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
-            String formattedOriginalPrice = formatter.format(originalPrice) + "đ";
-            holder.tvOriginalPrice.setText(formattedOriginalPrice);
-            holder.tvOriginalPrice.setPaintFlags(holder.tvOriginalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-
-            // Calculate discount percentage
-            double discountPercent = ((originalPrice - product.getPrice()) / originalPrice) * 100;
-            holder.tvDiscount.setText("-" + Math.round(discountPercent) + "%");
-        } else {
-            holder.tvOriginalPrice.setVisibility(View.GONE);
-            holder.tvDiscount.setVisibility(View.GONE);
-        }
 
         // Load product image with Glide
         if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
@@ -120,8 +98,6 @@ public class WishlistAdapter extends RecyclerView.Adapter<WishlistAdapter.Wishli
         TextView tvProductName;
         TextView tvProductDescription;
         TextView tvCurrentPrice;
-        TextView tvOriginalPrice;
-        TextView tvDiscount;
         ImageView btnRemoveWishlist;
 
         public WishlistViewHolder(@NonNull View itemView) {
@@ -130,8 +106,6 @@ public class WishlistAdapter extends RecyclerView.Adapter<WishlistAdapter.Wishli
             tvProductName = itemView.findViewById(R.id.tv_product_name);
             tvProductDescription = itemView.findViewById(R.id.tv_product_description);
             tvCurrentPrice = itemView.findViewById(R.id.tv_current_price);
-            tvOriginalPrice = itemView.findViewById(R.id.tv_original_price);
-            tvDiscount = itemView.findViewById(R.id.tv_discount);
             btnRemoveWishlist = itemView.findViewById(R.id.btn_remove_wishlist);
         }
     }

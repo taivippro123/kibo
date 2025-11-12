@@ -168,7 +168,7 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
 
         // Set initial style
         if (isSelected) {
-            tabView.setTextColor(getResources().getColor(R.color.primary_color));
+            tabView.setTextColor(getResources().getColor(android.R.color.white));
             tabView.setBackground(getResources().getDrawable(R.drawable.bg_tab_selected));
         } else {
             tabView.setTextColor(getResources().getColor(R.color.gray_medium));
@@ -194,7 +194,7 @@ public class WishlistActivity extends AppCompatActivity implements WishlistAdapt
         resetTabStyles();
 
         // Set selected tab style
-        selectedTab.setTextColor(getResources().getColor(R.color.primary_color));
+        selectedTab.setTextColor(getResources().getColor(android.R.color.white));
         selectedTab.setBackground(getResources().getDrawable(R.drawable.bg_tab_selected));
 
         currentCategory = category;
