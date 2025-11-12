@@ -21,6 +21,7 @@ import com.example.kibo.models.ProductImage;
 import com.example.kibo.models.Cart;
 import com.example.kibo.models.CartRequest;
 import com.example.kibo.models.CartItemRequest;
+import com.example.kibo.models.CartItemsResponse;
 import com.example.kibo.models.ApiResponse;
 import com.example.kibo.models.AddToWishlistRequest;
 import com.example.kibo.models.WishlistResponse;
@@ -534,7 +535,15 @@ public class ProductDetailActivity extends AppCompatActivity {
 
                 if (response.isSuccessful()) {
                     Toast.makeText(ProductDetailActivity.this, "Đã thêm vào giỏ hàng", Toast.LENGTH_SHORT).show();
-                    // Stay on current page, don't navigate to cart
+
+                    // Update badge then navigate
+                    updateBadgeAfterAddingToCart(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Navigate after badge updated
+                            navigateToCart();
+                        }
+                    });
                 } else {
                     Toast.makeText(ProductDetailActivity.this, "Không thể thêm vào giỏ hàng", Toast.LENGTH_SHORT)
                             .show();
@@ -551,4 +560,65 @@ public class ProductDetailActivity extends AppCompatActivity {
         });
     }
 
+    private void navigateToCart() {
+        // Navigate to MainActivity with cart tab selected
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra("selected_tab", 2); // Cart tab index
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+        // Don't finish here; allow back to product details if needed
+    }
+
+    /**
+     * Update badge count after adding product to cart
+     */
+    private void updateBadgeAfterAddingToCart(final Runnable onComplete) {
+        Log.d("ProductDetail", "updateBadgeAfterAddingToCart called");
+        if (sessionManager.hasActiveCart()) {
+            int cartId = sessionManager.getActiveCartId();
+            Log.d("ProductDetail", "Getting cart items for cartId: " + cartId);
+            apiService.getCartItems(cartId).enqueue(new Callback<CartItemsResponse>() {
+                @Override
+                public void onResponse(Call<CartItemsResponse> call, Response<CartItemsResponse> response) {
+                    Log.d("ProductDetail", "getCartItems response: " + response.code());
+                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                        int count = response.body().getData().size();
+                        Log.d("ProductDetail", "Cart count: " + count + ", updating badge...");
+                        // Update badge via NotificationHelper
+                        com.example.kibo.notifications.NotificationHelper.updateCartBadge(
+                                ProductDetailActivity.this, count);
+
+                        // Wait 500ms to ensure badge is fully updated before navigating
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (onComplete != null) {
+                                    onComplete.run();
+                                }
+                            }
+                        }, 500);
+                    } else {
+                        Log.e("ProductDetail", "Failed to get cart items or null data");
+                        if (onComplete != null) {
+                            onComplete.run();
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<CartItemsResponse> call, Throwable t) {
+                    Log.e("ProductDetail", "getCartItems failed: " + t.getMessage());
+                    // Call completion callback even on failure
+                    if (onComplete != null) {
+                        onComplete.run();
+                    }
+                }
+            });
+        } else {
+            Log.w("ProductDetail", "No active cart found");
+            if (onComplete != null) {
+                onComplete.run();
+            }
+        }
+    }
 }

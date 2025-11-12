@@ -68,27 +68,6 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <!-- Original Price -->
-            <TextView
-                android:id="@+id/tv_original_price"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="2.393.000đ"
-                android:textColor="@color/gray_medium"
-                android:textSize="12sp"
-                android:layout_marginStart="8dp" />
-
-            <!-- Discount Percentage -->
-            <TextView
-                android:id="@+id/tv_discount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-6%"
-                android:textColor="@color/primary_color"
-                android:textSize="12sp"
-                android:layout_marginStart="8dp"
-                android:textStyle="bold" />
-
         </LinearLayout>
 
     </LinearLayout>

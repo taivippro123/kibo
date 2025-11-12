@@ -94,29 +94,13 @@ public class MainActivity extends AppCompatActivity {
         scheduleCartBadgeWorker();
     }
 
-    /** Handle bottom navigation clicks */
-    private boolean onBottomNavSelected(@NonNull MenuItem item) {
-        Fragment selected = null;
-
-        int id = item.getItemId();
-        if (id == R.id.nav_home) selected = homeFragment;
-        else if (id == R.id.nav_orders) selected = ordersFragment;
-        else if (id == R.id.nav_cart) selected = cartFragment;
-        else if (id == R.id.nav_account) selected = accountFragment;
-
-        if (selected != null) {
-            Fragment current = getSupportFragmentManager().findFragmentById(R.id.frame_container);
-            if (current != null && current.getClass().equals(selected.getClass())) {
-                return true; // tránh reload cùng fragment
-            }
-            loadFragment(selected);
-            return true;
-        }
-
-        return false;
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh badge every time user returns to MainActivity
+        refreshCartBadge();
     }
 
-    /** Load fragment vào frame_container */
     private void loadFragment(Fragment fragment) {
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.frame_container, fragment)
@@ -125,7 +109,8 @@ public class MainActivity extends AppCompatActivity {
 
     /** Cập nhật badge giỏ hàng */
     public void updateCartBadge(int count) {
-        if (bottomNav == null) return;
+        if (bottomNav == null)
+            return;
 
         bottomNav.removeBadge(R.id.nav_cart);
 
@@ -138,16 +123,8 @@ public class MainActivity extends AppCompatActivity {
             badge.setMaxCharacterCount(3);
         }
 
-        try {
-            me.leolin.shortcutbadger.ShortcutBadger.applyCount(this, count);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        if (count > 0)
-            NotificationHelper.showCartNotification(this, count);
-        else
-            NotificationHelper.clearCartNotification(this);
+        // Update app icon badge (no notification, just badge)
+        NotificationHelper.updateCartBadge(this, count);
     }
 
     /** Lấy dữ liệu giỏ hàng và cập nhật badge */
@@ -180,7 +157,32 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /** Khởi tạo fragments */
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+
+        android.util.Log.d("MainActivity", "onNewIntent called - refreshing badge");
+
+        // Refresh badge when coming back from other activities
+        refreshCartBadge();
+
+        if (intent == null || bottomNav == null)
+            return;
+        int selectedTab = intent.getIntExtra("selected_tab", -1);
+        android.util.Log.d("MainActivity", "selected_tab from intent: " + selectedTab);
+        if (selectedTab == -1)
+            return;
+
+        Fragment target = getFragmentByTab(selectedTab);
+        if (target != null) {
+            loadFragment(target);
+            setSelectedTab(selectedTab);
+        }
+    }
+
+    // ============ Helper Methods ============
+
     private void initializeFragments() {
         homeFragment = new HomeFragment();
         ordersFragment = new OrdersFragment();
@@ -222,12 +224,34 @@ public class MainActivity extends AppCompatActivity {
         bottomNav.setSelectedItemId(id);
     }
 
+    /** Xử lý sự kiện chọn bottom navigation */
+    private boolean onBottomNavSelected(@NonNull MenuItem item) {
+        Fragment selectedFragment = null;
+        int itemId = item.getItemId();
+
+        if (itemId == R.id.nav_home) {
+            selectedFragment = homeFragment;
+        } else if (itemId == R.id.nav_orders) {
+            selectedFragment = ordersFragment;
+        } else if (itemId == R.id.nav_cart) {
+            selectedFragment = cartFragment;
+        } else if (itemId == R.id.nav_account) {
+            selectedFragment = accountFragment;
+        }
+
+        if (selectedFragment != null) {
+            loadFragment(selectedFragment);
+            return true;
+        }
+        return false;
+    }
 
     /** Lên lịch chạy Worker để cập nhật badge nền */
     private void scheduleCartBadgeWorker() {
         try {
             // chạy ngay 1 lần đầu tiên sau 3s
-            OneTimeWorkRequest initialWork = new OneTimeWorkRequest.Builder(com.example.kibo.workers.CartBadgeWorker.class)
+            OneTimeWorkRequest initialWork = new OneTimeWorkRequest.Builder(
+                    com.example.kibo.workers.CartBadgeWorker.class)
                     .setInitialDelay(3, TimeUnit.SECONDS)
                     .build();
             WorkManager.getInstance(this).enqueue(initialWork);
