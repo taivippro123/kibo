@@ -20,7 +20,7 @@ import me.leolin.shortcutbadger.ShortcutBadger;
 
 public class NotificationHelper {
     private static final String TAG = "NotificationHelper";
-    private static final String CART_CHANNEL_ID = "cart_badge_channel_v3"; // v3: Using HIGH importance
+    private static final String CART_CHANNEL_ID = "cart_badge_channel_v4"; // v4: Improved badge configuration
     private static final String CART_REMINDER_CHANNEL_ID = "cart_reminder_channel_v2";
     private static final int BADGE_NOTIFICATION_ID = 999;
     private static final int CART_REMINDER_NOTIFICATION_ID = 1000;
@@ -37,23 +37,25 @@ public class NotificationHelper {
             // Check if channel already exists
             NotificationChannel existingChannel = manager.getNotificationChannel(CART_CHANNEL_ID);
             if (existingChannel != null) {
-                // Channel exists, don't recreate
-                Log.d(TAG, "Badge channel already exists with importance: " + existingChannel.getImportance());
+                // Channel exists, check if badge is enabled
+                Log.d(TAG, "Badge channel exists - Importance: " + existingChannel.getImportance()
+                        + ", Badge enabled: " + existingChannel.canShowBadge());
                 return;
             }
 
-            // Create fresh channel
+            // Create fresh channel with proper badge configuration
             NotificationChannel channel = new NotificationChannel(
                     CART_CHANNEL_ID,
-                    "Cart Badge",
-                    NotificationManager.IMPORTANCE_HIGH); // HIGH to force Android to recognize
-            channel.setDescription("Shows cart count on app icon");
-            channel.setShowBadge(true);
-            channel.setSound(null, null); // Silent despite HIGH importance
-            channel.enableVibration(false);
-            channel.enableLights(false);
+                    "Badge giỏ hàng",
+                    NotificationManager.IMPORTANCE_LOW); // LOW is enough for badge
+            channel.setDescription("Hiển thị số lượng sản phẩm trong giỏ hàng trên icon ứng dụng");
+            channel.setShowBadge(true); // CRITICAL: Enable badge for this channel
+            channel.setSound(null, null); // Silent
+            channel.enableVibration(false); // No vibration
+            channel.enableLights(false); // No lights
+            channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_SECRET); // Don't show on lockscreen
             manager.createNotificationChannel(channel);
-            Log.d(TAG, "Badge channel created with IMPORTANCE_HIGH (silent)");
+            Log.d(TAG, "Badge channel (v4) created - IMPORTANCE_LOW with badge enabled");
         }
     }
 
@@ -79,7 +81,8 @@ public class NotificationHelper {
 
     /**
      * Update app icon badge with cart count
-     * Uses dual approach: ShortcutBadger + invisible notification
+     * Uses dual approach: ShortcutBadger + notification badge for maximum
+     * compatibility
      */
     public static void updateCartBadge(Context context, int count) {
         Log.d(TAG, "updateCartBadge called with count: " + count);
@@ -89,23 +92,27 @@ public class NotificationHelper {
             return;
         }
 
-        // Try ShortcutBadger first (works on Samsung, Xiaomi, Huawei, some launchers)
+        // Approach 1: Try ShortcutBadger (works on Samsung, Xiaomi, Huawei, some
+        // launchers)
+        boolean shortcutBadgerSuccess = false;
         try {
-            boolean success = ShortcutBadger.applyCount(context, count);
-            Log.d(TAG, "ShortcutBadger.applyCount(" + count + ") result: " + success);
-
-            // If ShortcutBadger failed, use notification-based badge as fallback
-            // But only if we have permission
-            if (!success && hasNotificationPermission(context)) {
-                postBadgeNotification(context, count);
-            } else if (!success) {
-                Log.w(TAG, "Cannot show badge: ShortcutBadger failed and no POST_NOTIFICATIONS permission");
-            }
+            shortcutBadgerSuccess = ShortcutBadger.applyCount(context, count);
+            Log.d(TAG, "ShortcutBadger.applyCount(" + count + ") result: " + shortcutBadgerSuccess);
         } catch (Exception e) {
             Log.e(TAG, "ShortcutBadger error: " + e.getMessage());
-            // Fallback to notification-based badge if we have permission
-            if (hasNotificationPermission(context)) {
-                postBadgeNotification(context, count);
+        }
+
+        // Approach 2: ALWAYS post notification badge if we have permission
+        // This ensures badge works on Pixel, stock Android, and launchers that use
+        // notifications
+        if (hasNotificationPermission(context)) {
+            postBadgeNotification(context, count);
+            Log.d(TAG, "Posted badge notification for additional launcher support");
+        } else {
+            Log.w(TAG, "Cannot post badge notification: no POST_NOTIFICATIONS permission");
+            // If ShortcutBadger also failed and no permission, badge won't show
+            if (!shortcutBadgerSuccess) {
+                Log.e(TAG, "Badge cannot be shown: both ShortcutBadger and notification badge unavailable");
             }
         }
     }
@@ -138,15 +145,29 @@ public class NotificationHelper {
         try {
             createBadgeChannel(context);
 
+            // Create intent to open MainActivity when notification is clicked
+            Intent intent = new Intent(context, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                    context,
+                    0,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CART_CHANNEL_ID)
-                    .setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentTitle("") // Empty to make it invisible
-                    .setContentText("")
-                    .setPriority(NotificationCompat.PRIORITY_MIN) // Minimize visibility
-                    .setOngoing(true) // Keep it persistent for badge
-                    .setNumber(count) // This triggers the badge
+                    .setSmallIcon(R.drawable.ic_notification_cart) // Use cart icon for notification
+                    .setContentTitle("Giỏ hàng") // Need title for badge to work
+                    .setContentText(count + " sản phẩm") // Need text for badge to work
+                    .setPriority(NotificationCompat.PRIORITY_LOW) // LOW instead of MIN
+                    .setOngoing(false) // Don't make it ongoing (causes issues)
+                    .setNumber(count) // This triggers the badge - CRITICAL!
+                    .setBadgeIconType(NotificationCompat.BADGE_ICON_SMALL) // Show as badge
                     .setShowWhen(false)
-                    .setAutoCancel(false);
+                    .setAutoCancel(true) // Auto dismiss when clicked
+                    .setContentIntent(pendingIntent) // Add click action
+                    .setOnlyAlertOnce(true) // Don't alert repeatedly
+                    .setSound(null) // Silent
+                    .setVibrate(null); // No vibration
 
             NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {
