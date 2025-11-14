@@ -1,12 +1,16 @@
 package com.example.kibo;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -34,6 +38,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final int REQUEST_POST_NOTIFICATIONS = 1001;
 
     private BottomNavigationView bottomNav;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -87,18 +93,90 @@ public class MainActivity extends AppCompatActivity {
             swipeRefreshLayout.postDelayed(() -> swipeRefreshLayout.setRefreshing(false), 1000);
         });
 
-        // Initial badge refresh
-        bottomNav.post(this::refreshCartBadge);
+        // Request notification permission first
+        requestNotificationPermission();
+
+        // Initial badge refresh and show notification if has items
+        bottomNav.post(() -> refreshCartBadge(true)); // Show notification on first launch
 
         // Schedule background badge updater
         scheduleCartBadgeWorker();
+    }
+
+    /**
+     * Request POST_NOTIFICATIONS permission for Android 13+
+     * Required for both notifications and badge to work
+     */
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+
+                // Check if we should show rationale
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.POST_NOTIFICATIONS)) {
+                    // User has denied permission before, show explanation
+                    Toast.makeText(this,
+                            "Cần quyền thông báo để hiển thị badge giỏ hàng và nhận thông báo",
+                            Toast.LENGTH_LONG).show();
+                }
+
+                // Request permission
+                ActivityCompat.requestPermissions(this,
+                        new String[] { Manifest.permission.POST_NOTIFICATIONS },
+                        REQUEST_POST_NOTIFICATIONS);
+            } else {
+                // Permission already granted
+                android.util.Log.d("MainActivity", "POST_NOTIFICATIONS permission already granted");
+            }
+        } else {
+            // Below Android 13, no runtime permission needed
+            android.util.Log.d("MainActivity", "Android version < 13, no POST_NOTIFICATIONS permission needed");
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+            @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_POST_NOTIFICATIONS) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted - refresh badge and show notification
+                android.util.Log.d("MainActivity", "POST_NOTIFICATIONS permission granted");
+                Toast.makeText(this, "Đã bật thông báo thành công", Toast.LENGTH_SHORT).show();
+                refreshCartBadge(true);
+            } else {
+                // Permission denied
+                android.util.Log.d("MainActivity", "POST_NOTIFICATIONS permission denied");
+
+                // Check if user selected "Don't ask again"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (!ActivityCompat.shouldShowRequestPermissionRationale(this,
+                            Manifest.permission.POST_NOTIFICATIONS)) {
+                        // User selected "Don't ask again" - show instruction to go to settings
+                        Toast.makeText(this,
+                                "Vui lòng bật quyền thông báo trong Cài đặt > Ứng dụng > Kibo > Quyền",
+                                Toast.LENGTH_LONG).show();
+                    } else {
+                        // User just denied, can ask again later
+                        Toast.makeText(this,
+                                "Badge giỏ hàng có thể không hiển thị do thiếu quyền thông báo",
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
+
+                // Still try to refresh badge (ShortcutBadger might work without permission)
+                refreshCartBadge(false);
+            }
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         // Refresh badge every time user returns to MainActivity
-        refreshCartBadge();
+        // Show notification reminder when coming back to app
+        refreshCartBadge(true);
     }
 
     private void loadFragment(Fragment fragment) {
@@ -129,6 +207,11 @@ public class MainActivity extends AppCompatActivity {
 
     /** Lấy dữ liệu giỏ hàng và cập nhật badge */
     public void refreshCartBadge() {
+        refreshCartBadge(false); // Default: don't show notification
+    }
+
+    /** Lấy dữ liệu giỏ hàng và cập nhật badge, optionally show notification */
+    public void refreshCartBadge(boolean showNotificationIfHasItems) {
         if (sessionManager == null)
             sessionManager = new SessionManager(this);
         if (apiService == null)
@@ -144,7 +227,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<CartItemsResponse> call, Response<CartItemsResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
-                    updateCartBadge(response.body().getData().size());
+                    int itemCount = response.body().getData().size();
+                    updateCartBadge(itemCount);
+
+                    // Show notification if requested and cart has items
+                    if (showNotificationIfHasItems && itemCount > 0) {
+                        NotificationHelper.showCartReminderNotification(MainActivity.this, itemCount);
+                    }
                 } else {
                     updateCartBadge(0);
                 }
