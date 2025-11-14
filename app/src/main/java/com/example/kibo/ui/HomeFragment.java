@@ -85,13 +85,6 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        // Notification button click
-        ImageButton btnNotification = root.findViewById(R.id.btn_notification);
-        btnNotification.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), NotificationActivity.class);
-            startActivity(intent);
-        });
-
         ImageButton btnFilter = root.findViewById(R.id.btn_filter);
         btnFilter.setOnClickListener(v -> {
             FilterBottomSheet sheet = new FilterBottomSheet();
