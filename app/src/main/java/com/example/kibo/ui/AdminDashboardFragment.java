@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,7 +29,10 @@ import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.highlight.Highlight;
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -47,9 +51,21 @@ public class AdminDashboardFragment extends Fragment {
     private ApiService apiService;
     private SwipeRefreshLayout swipeRefreshLayout;
     
+    // Popup views
+    private TextView popupProductName;
+    private TextView popupCategoryName;
+    
     // Counter để theo dõi số lượng data đã load xong
     private int completedDataLoads = 0;
     private static final int TOTAL_DATA_LOADS = 3; // Revenue, Best Selling, Best Selling By Category
+    
+    // Lưu danh sách labels đầy đủ để hiển thị khi click
+    private List<String> fullProductLabels = new ArrayList<>();
+    private List<String> fullCategoryLabels = new ArrayList<>();
+    
+    // Lưu trạng thái popup hiện tại
+    private Integer currentProductPopupIndex = null;
+    private Integer currentCategoryPopupIndex = null;
 
     @Nullable
     @Override
@@ -71,6 +87,8 @@ public class AdminDashboardFragment extends Fragment {
         loadingIndicator = view.findViewById(R.id.loadingIndicator);
         errorMessage = view.findViewById(R.id.errorMessage);
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshDashboard);
+        popupProductName = view.findViewById(R.id.popupProductName);
+        popupCategoryName = view.findViewById(R.id.popupCategoryName);
         apiService = ApiClient.getApiService();
         
         setupRevenueChart();
@@ -448,11 +466,13 @@ public class AdminDashboardFragment extends Fragment {
         // Tạo BarEntry data
         List<BarEntry> entries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
+        fullProductLabels.clear(); // Clear danh sách cũ
         
         for (int i = 0; i < topProducts.size(); i++) {
             Map.Entry<String, Integer> entry = topProducts.get(i);
             entries.add(new BarEntry(i, entry.getValue()));
             labels.add(entry.getKey());
+            fullProductLabels.add(entry.getKey()); // Lưu tên đầy đủ
         }
         
         // Tạo dataset với màu sắc đẹp
@@ -501,13 +521,13 @@ public class AdminDashboardFragment extends Fragment {
         leftAxis.setAxisMaximum(maxQuantity * 1.1f); // Thêm 10% padding
         leftAxis.setLabelCount(labelCount, false);
         
-        // Set labels for X-axis
+        // Set labels for X-axis với truncate text (ngắn hơn - 10 ký tự)
         bestSellingChart.getXAxis().setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
                 int index = (int) value;
                 if (index >= 0 && index < labels.size()) {
-                    return labels.get(index);
+                    return truncateText(labels.get(index), 10);
                 }
                 return "";
             }
@@ -515,6 +535,32 @@ public class AdminDashboardFragment extends Fragment {
         
         // Set số lượng labels hiển thị cho X-axis
         bestSellingChart.getXAxis().setLabelCount(labels.size(), false);
+        
+        // Thêm listener để hiển thị popup khi click vào bar
+        bestSellingChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+            @Override
+            public void onValueSelected(Entry e, Highlight h) {
+                int index = (int) e.getX();
+                if (index >= 0 && index < fullProductLabels.size()) {
+                    // Nếu click vào cùng bar, ẩn popup
+                    if (currentProductPopupIndex != null && currentProductPopupIndex == index) {
+                        hideProductPopup();
+                        return;
+                    }
+                    
+                    // Hiển thị popup mới
+                    String fullName = fullProductLabels.get(index);
+                    showProductPopup(fullName, h);
+                    currentProductPopupIndex = index;
+                }
+            }
+
+            @Override
+            public void onNothingSelected() {
+                // Ẩn popup khi không chọn
+                hideProductPopup();
+            }
+        });
         
         bestSellingChart.invalidate(); // Refresh chart
     }
@@ -826,11 +872,13 @@ public class AdminDashboardFragment extends Fragment {
         // Tạo BarEntry data
         List<BarEntry> entries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
+        fullCategoryLabels.clear(); // Clear danh sách cũ
         
         for (int i = 0; i < topCategories.size(); i++) {
             Map.Entry<String, Integer> entry = topCategories.get(i);
             entries.add(new BarEntry(i, entry.getValue()));
             labels.add(entry.getKey());
+            fullCategoryLabels.add(entry.getKey()); // Lưu tên đầy đủ
         }
         
         // Tạo dataset với màu sắc đẹp
@@ -879,13 +927,13 @@ public class AdminDashboardFragment extends Fragment {
         leftAxis.setAxisMaximum(maxQuantity * 1.1f); // Thêm 10% padding
         leftAxis.setLabelCount(labelCount, false);
         
-        // Set labels for X-axis
+        // Set labels for X-axis với truncate text (ngắn hơn - 10 ký tự)
         bestSellingByCategoryChart.getXAxis().setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
                 int index = (int) value;
                 if (index >= 0 && index < labels.size()) {
-                    return labels.get(index);
+                    return truncateText(labels.get(index), 10);
                 }
                 return "";
             }
@@ -894,6 +942,32 @@ public class AdminDashboardFragment extends Fragment {
         // Set số lượng labels hiển thị cho X-axis
         bestSellingByCategoryChart.getXAxis().setLabelCount(labels.size(), false);
         
+        // Thêm listener để hiển thị popup khi click vào bar
+        bestSellingByCategoryChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+            @Override
+            public void onValueSelected(Entry e, Highlight h) {
+                int index = (int) e.getX();
+                if (index >= 0 && index < fullCategoryLabels.size()) {
+                    // Nếu click vào cùng bar, ẩn popup
+                    if (currentCategoryPopupIndex != null && currentCategoryPopupIndex == index) {
+                        hideCategoryPopup();
+                        return;
+                    }
+                    
+                    // Hiển thị popup mới
+                    String fullName = fullCategoryLabels.get(index);
+                    showCategoryPopup(fullName, h);
+                    currentCategoryPopupIndex = index;
+                }
+            }
+
+            @Override
+            public void onNothingSelected() {
+                // Ẩn popup khi không chọn
+                hideCategoryPopup();
+            }
+        });
+        
         bestSellingByCategoryChart.invalidate(); // Refresh chart
     }
 
@@ -901,5 +975,102 @@ public class AdminDashboardFragment extends Fragment {
         errorMessage.setText(message);
         errorMessage.setVisibility(View.VISIBLE);
         Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Truncate text nếu quá dài, thêm "..." ở cuối
+     * @param text Text cần truncate
+     * @param maxLength Độ dài tối đa (không tính "...")
+     * @return Text đã được truncate
+     */
+    private String truncateText(String text, int maxLength) {
+        if (text == null || text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + "...";
+    }
+
+    /**
+     * Hiển thị popup với tên sản phẩm tại vị trí của bar
+     */
+    private void showProductPopup(String fullName, Highlight h) {
+        if (popupProductName == null || bestSellingChart == null) return;
+        
+        // Set text trước
+        popupProductName.setText(fullName);
+        popupProductName.setVisibility(View.VISIBLE);
+        
+        // Measure popup để có width/height chính xác
+        popupProductName.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        );
+        
+        // Lấy tọa độ pixel của bar từ Highlight
+        float xPx = h.getXPx();
+        float yPx = h.getYPx();
+        
+        // Convert dp to px
+        float density = getResources().getDisplayMetrics().density;
+        int offsetPx = (int) (20 * density); // 20dp offset
+        
+        // Position popup ở trên bar, căn giữa theo chiều ngang
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) popupProductName.getLayoutParams();
+        params.leftMargin = (int) (xPx - popupProductName.getMeasuredWidth() / 2);
+        params.topMargin = (int) (yPx - popupProductName.getMeasuredHeight() - offsetPx);
+        params.gravity = android.view.Gravity.NO_GRAVITY;
+        popupProductName.setLayoutParams(params);
+    }
+
+    /**
+     * Ẩn popup sản phẩm
+     */
+    private void hideProductPopup() {
+        if (popupProductName != null) {
+            popupProductName.setVisibility(View.GONE);
+            currentProductPopupIndex = null;
+        }
+    }
+
+    /**
+     * Hiển thị popup với tên danh mục tại vị trí của bar
+     */
+    private void showCategoryPopup(String fullName, Highlight h) {
+        if (popupCategoryName == null || bestSellingByCategoryChart == null) return;
+        
+        // Set text trước
+        popupCategoryName.setText(fullName);
+        popupCategoryName.setVisibility(View.VISIBLE);
+        
+        // Measure popup để có width/height chính xác
+        popupCategoryName.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        );
+        
+        // Lấy tọa độ pixel của bar từ Highlight
+        float xPx = h.getXPx();
+        float yPx = h.getYPx();
+        
+        // Convert dp to px
+        float density = getResources().getDisplayMetrics().density;
+        int offsetPx = (int) (20 * density); // 20dp offset
+        
+        // Position popup ở trên bar, căn giữa theo chiều ngang
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) popupCategoryName.getLayoutParams();
+        params.leftMargin = (int) (xPx - popupCategoryName.getMeasuredWidth() / 2);
+        params.topMargin = (int) (yPx - popupCategoryName.getMeasuredHeight() - offsetPx);
+        params.gravity = android.view.Gravity.NO_GRAVITY;
+        popupCategoryName.setLayoutParams(params);
+    }
+
+    /**
+     * Ẩn popup danh mục
+     */
+    private void hideCategoryPopup() {
+        if (popupCategoryName != null) {
+            popupCategoryName.setVisibility(View.GONE);
+            currentCategoryPopupIndex = null;
+        }
     }
 }
