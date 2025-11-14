@@ -5,8 +5,8 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class OrdersPagerAdapter extends FragmentStateAdapter {
-    private static final int TAB_COUNT = 6;
-    private static final long[] STABLE_IDS = new long[]{0,1,2,3,4,5};
+    private static final int TAB_COUNT = 4;
+    private static final long[] STABLE_IDS = new long[]{0,1,2,3};
 
     public OrdersPagerAdapter(@NonNull Fragment fragment) {
         super(fragment);
@@ -21,8 +21,6 @@ public class OrdersPagerAdapter extends FragmentStateAdapter {
             case 1: return OrdersStatusFragment.newInstance("READY_TO_PICK");
             case 2: return OrdersStatusFragment.newInstance("DELIVERING");
             case 3: return OrdersStatusFragment.newInstance("DELIVERED");
-            case 4: return OrdersStatusFragment.newInstance("RETURNED");
-            case 5: return OrdersStatusFragment.newInstance("CANCELLED");
             default: return OrdersStatusFragment.newInstance("ALL");
         }
     }

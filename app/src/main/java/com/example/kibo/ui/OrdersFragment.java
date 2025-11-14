@@ -20,7 +20,7 @@ import com.example.kibo.utils.SessionManager;
 
 public class OrdersFragment extends Fragment {
     private static final String[] TAB_TITLES = new String[]{
-            "Tất cả", "Chờ lấy hàng", "Chờ giao hàng", "Đã giao", "Trả hàng", "Đã hủy"
+            "Tất cả", "Chờ lấy hàng", "Chờ giao hàng", "Đã giao"
     };
 
     private ViewPager2 viewPager;

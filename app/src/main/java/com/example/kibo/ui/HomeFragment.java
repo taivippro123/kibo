@@ -48,6 +48,7 @@ public class HomeFragment extends Fragment {
     private EditText etSearch;
     private List<Product> allProducts;
     private Handler searchHandler = new Handler(Looper.getMainLooper());
+    private boolean isLoading = false;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -93,7 +94,8 @@ public class HomeFragment extends Fragment {
         });
 
 
-        // Load products from API
+        // Load products
+        allProducts = new ArrayList<>();
         loadProducts();
 
         return root;
@@ -179,59 +181,41 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadProducts() {
-        Log.d(TAG, "Starting to load products...");
-        // Try without pagination first
-        ApiClient.getApiService().getAllProducts().enqueue(new Callback<ProductResponse>() {
+        if (isLoading) return;
+        
+        isLoading = true;
+        Log.d(TAG, "Loading products - PageSize: 30");
+        
+        ApiClient.getApiService().getProducts(1, 30).enqueue(new Callback<ProductResponse>() {
             @Override
             public void onResponse(Call<ProductResponse> call, Response<ProductResponse> response) {
-                Log.d(TAG, "Response received. Code: " + response.code());
-
+                isLoading = false;
+                
                 if (response.isSuccessful() && response.body() != null) {
                     ProductResponse productResponse = response.body();
-                    Log.d(TAG, "Response body is not null");
-
                     List<Product> products = productResponse.getData();
 
-                    if (products != null) {
-                        Log.d(TAG, "Products list size: " + products.size());
-
-                        if (!products.isEmpty()) {
-                            // Store all products for search functionality
-                            allProducts = products;
-                            productAdapter.updateProducts(products);
-                            Log.d(TAG, "Successfully loaded " + products.size() + " products");
-
-                            // Log first product details
-                            Product firstProduct = products.get(0);
-                            Log.d(TAG, "First product: " + firstProduct.getProductName() + " - "
-                                    + firstProduct.getFormattedPrice());
-                        } else {
-                            Log.w(TAG, "Products list is empty");
-                            Toast.makeText(requireContext(), "Không có sản phẩm nào", Toast.LENGTH_SHORT).show();
-                        }
+                    if (products != null && !products.isEmpty()) {
+                        // Store all products
+                        allProducts = products;
+                        productAdapter.updateProducts(allProducts);
+                        
+                        Log.d(TAG, "Loaded " + products.size() + " products");
                     } else {
-                        Log.e(TAG, "Products list is null");
-                        Toast.makeText(requireContext(), "Lỗi: Danh sách sản phẩm null", Toast.LENGTH_SHORT).show();
+                        allProducts = new ArrayList<>();
+                        productAdapter.updateProducts(allProducts);
+                        Toast.makeText(requireContext(), "Không có sản phẩm nào", Toast.LENGTH_SHORT).show();
                     }
                 } else {
                     Log.e(TAG, "Response not successful: " + response.code());
-                    try {
-                        String errorBody = response.errorBody() != null ? response.errorBody().string()
-                                : "No error body";
-                        Log.e(TAG, "Error body: " + errorBody);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Cannot read error body", e);
-                    }
-                    Toast.makeText(requireContext(), "Không thể tải sản phẩm (Code: " + response.code() + ")",
-                            Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Không thể tải sản phẩm (Code: " + response.code() + ")", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ProductResponse> call, Throwable t) {
+                isLoading = false;
                 Log.e(TAG, "Failed to load products", t);
-                Log.e(TAG, "Error message: " + t.getMessage());
-                Log.e(TAG, "Request URL: " + call.request().url());
                 Toast.makeText(requireContext(), "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
