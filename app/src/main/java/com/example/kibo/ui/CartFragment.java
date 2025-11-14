@@ -46,7 +46,9 @@ public class CartFragment extends Fragment {
     private LinearLayout layoutEmptyCart;
     private TextView textViewEmptyCart;
     private TextView textViewItemCount;
+    private TextView textViewTotalPrice;
     private Button buttonContinue;
+    private Button buttonClearCart;
 
     private CartItemAdapter cartItemAdapter;
     private List<CartItem> cartItems = new ArrayList<>();
@@ -151,7 +153,9 @@ public class CartFragment extends Fragment {
         layoutEmptyCart = view.findViewById(R.id.layout_empty_cart);
         textViewEmptyCart = view.findViewById(R.id.text_view_empty_cart);
         textViewItemCount = view.findViewById(R.id.text_view_item_count);
+        textViewTotalPrice = view.findViewById(R.id.text_view_total_price);
         buttonContinue = view.findViewById(R.id.button_continue);
+        buttonClearCart = view.findViewById(R.id.button_clear_cart);
     }
 
     private void setupRecyclerView() {
@@ -182,6 +186,14 @@ public class CartFragment extends Fragment {
                     intent.putExtra("cart_id", sessionManager.getActiveCartId());
                 }
                 startActivity(intent);
+            }
+        });
+
+        // Clear cart button click listener
+        buttonClearCart.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                confirmClearCart();
             }
         });
     }
@@ -236,6 +248,7 @@ public class CartFragment extends Fragment {
                             loadCartItems();
                         } else {
                             Log.e(TAG, "Update quantity failed: " + response.code());
+                            Toast.makeText(requireContext(), "Không thể cập nhật số lượng", Toast.LENGTH_SHORT).show();
                         }
                     }
 
@@ -271,6 +284,7 @@ public class CartFragment extends Fragment {
                             loadCartItems();
                         } else {
                             Log.e(TAG, "Remove item failed: " + response.code());
+                            Toast.makeText(requireContext(), "Không thể xóa sản phẩm", Toast.LENGTH_SHORT).show();
                         }
                     }
 
@@ -385,12 +399,61 @@ public class CartFragment extends Fragment {
         });
     }
 
+    private void confirmClearCart() {
+        if (!sessionManager.hasActiveCart()) {
+            return;
+        }
+        
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Xóa tất cả sản phẩm")
+                .setMessage("Bạn có chắc muốn xóa tất cả sản phẩm khỏi giỏ hàng?")
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xóa", (d, w) -> clearCart())
+                .show();
+    }
+
+    private void clearCart() {
+        if (!sessionManager.hasActiveCart()) {
+            return;
+        }
+        
+        int cartId = sessionManager.getActiveCartId();
+        apiService.clearCart(cartId).enqueue(new Callback<com.example.kibo.models.ApiResponse<String>>() {
+            @Override
+            public void onResponse(Call<com.example.kibo.models.ApiResponse<String>> call,
+                    Response<com.example.kibo.models.ApiResponse<String>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    Toast.makeText(requireContext(), "Đã xóa tất cả sản phẩm khỏi giỏ hàng", Toast.LENGTH_SHORT).show();
+                    loadCartItems(); // Reload to show empty state
+                } else {
+                    Toast.makeText(requireContext(), "Không thể xóa giỏ hàng", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) {
+                Log.e(TAG, "Clear cart error: " + t.getMessage());
+                Toast.makeText(requireContext(), "Lỗi: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void calculateAndDisplayTotal() {
+        double total = 0;
+        for (CartItem item : cartItems) {
+            total += item.getPrice() * item.getQuantity();
+        }
+        textViewTotalPrice.setText(String.format("%,.0fđ", total));
+    }
+
     private void showEmptyState() {
         // Show empty state and hide cart items
         layoutEmptyCart.setVisibility(View.VISIBLE);
         recyclerViewCartItems.setVisibility(View.GONE);
         buttonContinue.setVisibility(View.GONE);
+        buttonClearCart.setVisibility(View.GONE);
         textViewItemCount.setText("0 sản phẩm");
+        textViewTotalPrice.setText("0đ");
         if (getActivity() instanceof com.example.kibo.MainActivity) {
             ((com.example.kibo.MainActivity) getActivity()).updateCartBadge(0);
         }
@@ -401,10 +464,14 @@ public class CartFragment extends Fragment {
         layoutEmptyCart.setVisibility(View.GONE);
         recyclerViewCartItems.setVisibility(View.VISIBLE);
         buttonContinue.setVisibility(View.VISIBLE);
+        buttonClearCart.setVisibility(View.VISIBLE);
 
         // Update item count
         int totalItems = cartItems.size();
         textViewItemCount.setText(totalItems + " sản phẩm");
+
+        // Calculate and display total price
+        calculateAndDisplayTotal();
 
         // Update badge on bottom navigation
         if (getActivity() instanceof com.example.kibo.MainActivity) {

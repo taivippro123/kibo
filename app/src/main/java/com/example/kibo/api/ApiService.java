@@ -209,6 +209,10 @@ public interface ApiService {
         @HTTP(method = "DELETE", path = "CartItems/remove", hasBody = true)
         Call<ApiResponse<String>> removeCartItem(@Body RemoveCartItemRequest request);
 
+        // Clear all items from cart
+        @HTTP(method = "DELETE", path = "CartItems/cart/{cartId}/clear", hasBody = false)
+        Call<ApiResponse<String>> clearCart(@Path("cartId") int cartId);
+
         // Logout endpoint
         @POST("Auth/logout")
         Call<ApiResponse<String>> logout();
