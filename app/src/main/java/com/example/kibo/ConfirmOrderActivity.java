@@ -23,8 +23,6 @@ import com.example.kibo.models.CartItem;
 import com.example.kibo.models.CartItemsResponse;
 import com.example.kibo.models.FullAddressResponse;
 import com.example.kibo.models.User;
-import com.example.kibo.models.Voucher;
-import com.example.kibo.models.VoucherUseResponse;
 import com.example.kibo.models.Payment;
 import com.example.kibo.utils.SessionManager;
 import retrofit2.Call;
@@ -52,11 +50,6 @@ public class ConfirmOrderActivity extends AppCompatActivity {
     private TextView textViewUserAddress;
     private TextView textViewChangeAddress;
     private TextView textViewShippingFee;
-    private LinearLayout layoutVoucherSelection;
-    private TextView textViewVoucherCode;
-    private TextView textViewVoucherDiscount;
-    private LinearLayout layoutVoucherDiscount;
-    private TextView textViewVoucherDiscountAmount;
     private RecyclerView recyclerViewOrderItems;
     private TextView textViewSubtotal;
     private TextView textViewShipping;
@@ -70,8 +63,6 @@ public class ConfirmOrderActivity extends AppCompatActivity {
     private java.util.ArrayList<CartItem> items = new java.util.ArrayList<>();
     private int cartId;
     private double actualShippingFee = 0;
-    private Voucher selectedVoucher;
-    private double voucherDiscount = 0;
     private com.example.kibo.models.Product firstProduct; // Store first product for dimensions
     private int firstProductQuantity = 0;
     
@@ -118,11 +109,6 @@ public class ConfirmOrderActivity extends AppCompatActivity {
         textViewUserAddress = findViewById(R.id.text_view_user_address);
         textViewChangeAddress = findViewById(R.id.text_view_change_address);
         textViewShippingFee = findViewById(R.id.text_view_shipping_fee);
-        layoutVoucherSelection = findViewById(R.id.layout_voucher_selection);
-        textViewVoucherCode = findViewById(R.id.text_view_voucher_code);
-        textViewVoucherDiscount = findViewById(R.id.text_view_voucher_discount);
-        layoutVoucherDiscount = findViewById(R.id.layout_voucher_discount);
-        textViewVoucherDiscountAmount = findViewById(R.id.text_view_voucher_discount_amount);
         recyclerViewOrderItems = findViewById(R.id.recycler_view_order_items);
         textViewSubtotal = findViewById(R.id.text_view_subtotal);
         textViewShipping = findViewById(R.id.text_view_shipping);
@@ -222,24 +208,6 @@ public class ConfirmOrderActivity extends AppCompatActivity {
             }
         });
         
-        // Voucher selection click listener
-        layoutVoucherSelection.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Calculate current order value
-                double subtotal = 0;
-                for (CartItem item : items) {
-                    subtotal += item.getPrice() * item.getQuantity();
-                }
-                double orderValue = subtotal + actualShippingFee;
-                
-                // Navigate to VoucherSelectionActivity
-                Intent intent = new Intent(ConfirmOrderActivity.this, VoucherSelectionActivity.class);
-                intent.putExtra("order_value", orderValue);
-                startActivityForResult(intent, 1001); // Request code for voucher selection
-            }
-        });
-        
         // Confirm order button
         buttonConfirmOrder.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -298,19 +266,11 @@ public class ConfirmOrderActivity extends AppCompatActivity {
             subtotal += item.getPrice() * item.getQuantity();
         }
         double shipping = actualShippingFee; // Use actual shipping fee from API
-        double total = subtotal + shipping - voucherDiscount; // Apply voucher discount
+        double total = subtotal + shipping;
         
         textViewSubtotal.setText(String.format("%,.0fđ", subtotal));
         textViewShipping.setText(String.format("%,.0fđ", shipping));
         textViewTotal.setText(String.format("%,.0fđ", total));
-        
-        // Show/hide voucher discount line
-        if (voucherDiscount > 0) {
-            layoutVoucherDiscount.setVisibility(View.VISIBLE);
-            textViewVoucherDiscountAmount.setText(String.format("-%,.0fđ", voucherDiscount));
-        } else {
-            layoutVoucherDiscount.setVisibility(View.GONE);
-        }
     }
 
     /**
@@ -525,63 +485,6 @@ public class ConfirmOrderActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<com.example.kibo.models.ApiResponse<String>> call, Throwable t) { }
-        });
-    }
-    
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        
-        if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
-            // Handle voucher selection result
-            Voucher selectedVoucher = (Voucher) data.getSerializableExtra("selected_voucher");
-            if (selectedVoucher != null) {
-                this.selectedVoucher = selectedVoucher;
-                useVoucher(selectedVoucher.getCode());
-            }
-        }
-    }
-    
-    private void useVoucher(String voucherCode) {
-        // Calculate current order value
-        double subtotal = 0;
-        for (CartItem item : items) {
-            subtotal += item.getPrice() * item.getQuantity();
-        }
-        double orderValue = subtotal + actualShippingFee;
-        
-        // Send only orderValue as decimal number
-        apiService.useVoucher(voucherCode, orderValue).enqueue(new Callback<VoucherUseResponse>() {
-            @Override
-            public void onResponse(Call<VoucherUseResponse> call, Response<VoucherUseResponse> response) {
-                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    VoucherUseResponse.VoucherUseData data = response.body().getData();
-                    if (data != null) {
-                        voucherDiscount = data.getDiscountAmount();
-                        
-                        // Update UI
-                        textViewVoucherCode.setText(selectedVoucher.getCode());
-                        textViewVoucherDiscount.setText(selectedVoucher.getDiscountDisplayText());
-                        textViewVoucherDiscount.setVisibility(View.VISIBLE);
-                        
-                        // Recalculate totals
-                        computeTotals();
-                        
-                        Toast.makeText(ConfirmOrderActivity.this, "Áp dụng mã giảm giá thành công!", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    String errorMessage = "Không thể áp dụng mã giảm giá";
-                    if (response.body() != null && response.body().getMessage() != null) {
-                        errorMessage = response.body().getMessage();
-                    }
-                    Toast.makeText(ConfirmOrderActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<VoucherUseResponse> call, Throwable t) {
-                Toast.makeText(ConfirmOrderActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
         });
     }
     

@@ -42,6 +42,8 @@ public class OrderDetailFragement extends Fragment {
     private TextView tvQuantity;
     private TextView tvPaymentMethod;
     private TextView tvPaymentStatus;
+    private TextView tvShippingFeeLabel;
+    private TextView tvShippingFee;
     private TextView tvCustomerLabel;
     private TextView tvCustomerName;
     private LinearLayout timelineContainer;
@@ -53,6 +55,8 @@ public class OrderDetailFragement extends Fragment {
     private View adminToolbar;
     private View adminContainer;
     private int originalTopMargin = -1;
+    private double paymentAmount = 0;
+    private java.util.List<CartItem> cartItemsList = null;
 
     public static OrderDetailFragement newInstance(Order order) {
         OrderDetailFragement fragment = new OrderDetailFragement();
@@ -85,6 +89,8 @@ public class OrderDetailFragement extends Fragment {
         tvQuantity = root.findViewById(R.id.tv_quantity);
         tvPaymentMethod = root.findViewById(R.id.tv_payment_method);
         tvPaymentStatus = root.findViewById(R.id.tv_payment_status);
+        tvShippingFeeLabel = root.findViewById(R.id.tv_shipping_fee_label);
+        tvShippingFee = root.findViewById(R.id.tv_shipping_fee);
         tvCustomerLabel = root.findViewById(R.id.tv_customer_label);
         tvCustomerName = root.findViewById(R.id.tv_customer_name);
         timelineContainer = root.findViewById(R.id.timeline_container);
@@ -215,9 +221,13 @@ public class OrderDetailFragement extends Fragment {
                     
                     if (response.isSuccessful() && response.body() != null && response.body().getData() != null && !response.body().getData().isEmpty()) {
                         java.util.List<CartItem> cartItems = response.body().getData();
+                        cartItemsList = cartItems;
                         
                         // Display all products in the order
                         displayAllProducts(cartItems);
+                        
+                        // Calculate and display shipping fee if payment amount is available
+                        calculateAndDisplayShippingFee();
                     } else {
                         // Fallback: try to load from order details
                         loadOrderDetailsFallback();
@@ -260,8 +270,14 @@ public class OrderDetailFragement extends Fragment {
                         int colorResId = status == 1 ? R.color.green : R.color.red_dark;
                         tvPaymentStatus.setTextColor(getResources().getColor(colorResId, null));
 
+                        // Store payment amount for shipping fee calculation
+                        paymentAmount = amount;
+                        
                         // Show total amount for this order
                         tvPrice.setText(String.format("%,.0fđ", amount));
+                        
+                        // Calculate and display shipping fee if cart items are available
+                        calculateAndDisplayShippingFee();
                     }
                 }
 
@@ -711,6 +727,28 @@ public class OrderDetailFragement extends Fragment {
             return outputFormat.format(date);
         } catch (Exception e) {
             return isoDate;
+        }
+    }
+    
+    private void calculateAndDisplayShippingFee() {
+        if (paymentAmount > 0 && cartItemsList != null && !cartItemsList.isEmpty()) {
+            // Calculate total product price
+            double totalProductPrice = 0;
+            for (CartItem item : cartItemsList) {
+                totalProductPrice += item.getPrice() * item.getQuantity();
+            }
+            
+            // Calculate shipping fee = order total - product total
+            double shippingFee = paymentAmount - totalProductPrice;
+            
+            // Display shipping fee (ensure it's not negative)
+            if (shippingFee >= 0) {
+                tvShippingFee.setText(String.format("%,.0fđ", shippingFee));
+            } else {
+                tvShippingFee.setText("0đ");
+            }
+        } else {
+            tvShippingFee.setText("0đ");
         }
     }
 }
