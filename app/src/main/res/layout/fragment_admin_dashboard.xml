@@ -87,11 +87,31 @@
                 android:paddingBottom="12dp"
                 android:gravity="center" />
             
-            <!-- Best Selling Products Chart -->
-            <com.github.mikephil.charting.charts.BarChart
-                android:id="@+id/bestSellingChart"
+            <!-- FrameLayout để chứa chart và popup -->
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="300dp" />
+                android:layout_height="300dp">
+                
+                <!-- Best Selling Products Chart -->
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/bestSellingChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+                
+                <!-- Popup hiển thị tên sản phẩm -->
+                <TextView
+                    android:id="@+id/popupProductName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_popup_tooltip"
+                    android:padding="12dp"
+                    android:textSize="12sp"
+                    android:textColor="@color/gray_dark"
+                    android:maxWidth="200dp"
+                    android:visibility="gone"
+                    android:elevation="8dp" />
+                    
+            </FrameLayout>
                 
         </LinearLayout>
 
@@ -116,11 +136,31 @@
                 android:paddingBottom="12dp"
                 android:gravity="center" />
             
-            <!-- Best Selling By Category Chart -->
-            <com.github.mikephil.charting.charts.BarChart
-                android:id="@+id/bestSellingByCategoryChart"
+            <!-- FrameLayout để chứa chart và popup -->
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="300dp" />
+                android:layout_height="300dp">
+                
+                <!-- Best Selling By Category Chart -->
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/bestSellingByCategoryChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+                
+                <!-- Popup hiển thị tên danh mục -->
+                <TextView
+                    android:id="@+id/popupCategoryName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_popup_tooltip"
+                    android:padding="12dp"
+                    android:textSize="12sp"
+                    android:textColor="@color/gray_dark"
+                    android:maxWidth="200dp"
+                    android:visibility="gone"
+                    android:elevation="8dp" />
+                    
+            </FrameLayout>
                 
         </LinearLayout>
 
